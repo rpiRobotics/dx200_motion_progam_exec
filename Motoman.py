@@ -237,7 +237,6 @@ class RobotPost(object):
         self.LBL_ID_COUNT = 0
         
     def progsave(self, folder, progname, ask_user = False, show_result = False):
-        print(folder)
         if not folder.endswith('/'):
             folder = folder + '/'
         progname = progname + '.' + self.PROG_EXT
@@ -279,7 +278,7 @@ class RobotPost(object):
     def ProgSave(self, folder, progname, ask_user = False, show_result = False):
         progname = get_safe_name(progname)
         nfiles = len(self.PROG_LIST)
-        if nfiles >= 1:
+        if nfiles > 1:
             if self.LINE_COUNT > 0:
                 # Progfinish was not called!
                 print("Warning: ProgFinish was not called properly")
@@ -318,7 +317,7 @@ class RobotPost(object):
                 self.progsave(folder_user, self.PROG_NAMES[i], False, show_result)
                 
         elif nfiles == 1:
-            self.PROG = self.PROG_NAMES[0]
+            self.PROG = self.PROG_LIST.pop()
             self.progsave(folder, progname, ask_user, show_result)
             
         else:
@@ -730,33 +729,25 @@ def test_post():
     robot.MoveL(Pose([250, 200, 278.023897, 180, 0, -150]), [-41.85389, -1.95619, -34.89154, 57.43912, 52.34162, -253.73403] )
     robot.MoveL(Pose([250, 150, 191.421356, 180, 0, -150]), [-43.82111, 3.29703, -40.29493, 56.02402, 56.61169, -249.23532] )
     robot.ProgFinish("Program")
-    robot.ProgSave(".","OUTPUT",True)
+    robot.ProgSave(".","AAA",False)
 
-    file9=open("OUTPUT.JBI","r")
-    file10=open("FINAL.JBI","w")
-    lines=file9.readlines()
-    for line in lines:
-        
-        newline=line.replace('\n','$').replace('$','\r\n').replace("END","END\r").replace("POSTYPE BASE","POSTYPE USER").replace("FRAME BASE","FRAME USER")
-        if("POSTYPE" in line):
-            file10.write("///USER 1\r\n")
-        file10.write(newline)
-    
-    file9.close()
-    file10.close()
+    file=open("AAA.JBI","r")
+    file_new=open("AAA2.JBI","w")
+    lines=file.readlines()
+    for i in range(len(lines)):
+        file_new.write(lines[i])
+        if i==len(lines)-2:
+            break
+    file_new.write("END\r")
+    file_new.write("\n")
+    file.close()
+    file_new.close()
+
     robot.PROG_FILES=[]
     print(robot.PROG_FILES)
-    robot.PROG_FILES.append("BACK34IN.JBI")
+    robot.PROG_FILES.append("AAA2.JBI")
     robot.ProgSendRobot('192.168.1.31','JOB',"ftp","")
 
-    # robot.PROG = robot.PROG_LIST.pop()
-    for line in robot.PROG:
-        print(line)
-    
-    if len(robot.LOG) > 0:
-        mbox('Program generation LOG:\n\n' + robot.LOG)
-
-    input("Press Enter to close...")
 
 if __name__ == "__main__":
     """Function to call when the module is executed by itself: test"""
