@@ -14,8 +14,8 @@ robot.ProgFinish("Program")
 robot.ProgSave(".","OUTPUT",True)
 
 print(robot.PROG_FILES)
-robot.PROG_FILES.append("BACK34IN.JBI")
-robot.ProgSendRobot('192.168.1.31','JOB',"ftp","")
+robot.PROG_FILES.append("ROBODK.JBI")
+robot.ProgSendRobot('192.168.55.1','JOB',"ftp","")
 
 
 # for line in lines:
