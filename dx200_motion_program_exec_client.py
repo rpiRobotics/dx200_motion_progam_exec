@@ -49,6 +49,7 @@ def main():
 
     client.execute_motion_program("AAA2.JBI")
 
+    self.mh.disconnectMH()
 
 if __name__ == "__main__":
     main()
