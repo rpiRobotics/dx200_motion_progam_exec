@@ -143,7 +143,9 @@ class RobotPost(object):
             if k == 'axes_type':
                 self.AXES_TYPE = v                
             if k == 'pulses_x_deg':
-                self.PULSES_X_DEG = v    
+                self.PULSES_X_DEG = v
+            if k=='ROBOT_CHOICE':
+                self.ROBOT_CHOICE = v 
                 
         for i in range(len(self.AXES_TYPE)):
             if self.AXES_TYPE[i] == 'T':
@@ -213,7 +215,10 @@ class RobotPost(object):
         else:
             header_ins += '///ATTR SC,RW' + '\n'
 
-        header_ins += '///GROUP1 RB1' + '\n'
+        if self.ROBOT_CHOICE:
+            header_ins += '///GROUP1 '+self.ROBOT_CHOICE + '\n'
+        else:
+            header_ins += '///GROUP1 RB1' + '\n'
         header_ins += 'NOP'
         #if self.HAS_TURNTABLE:
         #    header = header + '/APPL' + '\n'
@@ -333,20 +338,14 @@ class RobotPost(object):
         The connection parameters must be provided in the robot connection menu of RoboDK"""
         UploadFTP(self.PROG_FILES, robot_ip, remote_path, ftp_user, ftp_pass)
         
-    def MoveJ(self, pose, joints, conf_RLF=None):
+    def MoveJ(self, pose, joints, speed, zone):
         """Add a joint movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         target_id = self.add_target_joints(joints)
-        self.addline("MOVJ C%05d %s%s" % (target_id, self.STR_VJ, self.STR_PL))                    
-        self.LAST_POSE = pose
+        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                    
         
-    def MoveL(self, pose, joints, conf_RLF=None):
+    def MoveL(self, pose, joints, speed, zone, conf_RLF=None):
         """Add a linear movement"""        
-        #if self.LAST_POSE is not None and pose is not None:
-        #    # Skip adding a new movement if the new position is the same as the last one
-        #    if distance(pose.Pos(), self.LAST_POSE.Pos()) < 0.1 and pose_angle_between(pose, self.LAST_POSE) < 0.1:
-        #        return
-
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
                 
         if pose is None:
@@ -354,24 +353,18 @@ class RobotPost(object):
         else:
             target_id = self.add_target_cartesian(self.POSE_FRAME*pose, joints, conf_RLF)
 
-        self.addline("MOVL C%05d %s%s" % (target_id, self.STR_V, self.STR_PL))        
-        self.LAST_POSE = pose
+        self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))        
         
-    def MoveC(self, pose1, joints1, pose2, joints2, conf_RLF_1=None, conf_RLF_2=None):
+    def MoveC(self, pose1, joints1, pose2, joints2, speed, zone, conf_RLF_1=None, conf_RLF_2=None):
         """Add a circular movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
-        
-        if self.LAST_POSE is not None:
-            target_id0 = self.add_target_cartesian(self.POSE_FRAME*self.LAST_POSE, joints1, conf_RLF_1)
-            self.addline("MOVC C%05d %s%s" % (target_id0, self.STR_V, self.STR_PL))
-        
+
         target_id1 = self.add_target_cartesian(self.POSE_FRAME*pose1, joints1, conf_RLF_1)
         target_id2 = self.add_target_cartesian(self.POSE_FRAME*pose2, joints2, conf_RLF_2)
             
-        self.addline("MOVC C%05d %s%s" % (target_id1, self.STR_V, self.STR_PL))
-        self.addline("MOVC C%05d %s%s" % (target_id2, self.STR_V, self.STR_PL))
+        self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
+        self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
         
-        self.LAST_POSE = None
         
     def setFrame(self, pose, frame_id, frame_name):
         """Change the robot reference frame"""
