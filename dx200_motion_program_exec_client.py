@@ -24,7 +24,7 @@ class MotionProgramExecClient:
 
 
 def main():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1')
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB2')
 
     ###TODO: fix tool definition
     # client.robodk_rob.DONT_USE_SETTOOL=False
@@ -33,14 +33,14 @@ def main():
 
     client.robodk_rob.ProgStart(r"""AAA""")
     client.robodk_rob.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
-    client.robodk_rob.MoveJ(Pose([1232,0,860,0,0,-180]),[10,0,0,0,0,0],10,0)
+    client.robodk_rob.MoveJ(Pose([1232,0,860,0,0,-180]),[0,0,0,0,0,0],10,0)
     client.robodk_rob.MoveJ(Pose([1232,0,593.478,0,0,-180]),[0,-1.23097,-15.1604,0,13.9294,0],10,0)
     client.robodk_rob.MoveJ(Pose([903.741,0,593.478,0,0,-180]),[0,-27.1205,-36.7057,0,9.58517,0],10,0)
     client.robodk_rob.ProgFinish(r"""AAA""")
     client.robodk_rob.ProgSave(".","AAA",False)
 
     client.execute_motion_program("AAA.JBI")
-    self.mh.disconnectMH()
+    client.mh.disconnectMH()
 
 if __name__ == "__main__":
     main()
