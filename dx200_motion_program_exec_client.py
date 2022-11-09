@@ -5,11 +5,12 @@ from Motoman import RobotPost, Pose
 from MotomanEthernet import MotomanConnector
 
 class MotionProgramExecClient:
-    def __init__(self, ip='192.168.55.1',ROBOT_CHOICE='RB1'):
+    def __init__(self, ip='192.168.55.1',ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02]):
         self.ip=ip
-        self.mh=MotomanConnector(IP=ip, PORT=80, S_pulse = 1341.4, L_pulse = 1341.4, U_pulse = 1341.4, R_pulse = 1000, B_pulse = 1000, T_pulse = 622)
+        self.mh=MotomanConnector(IP=ip, PORT=80, S_pulse = pulse2deg[0], L_pulse = pulse2deg[1], U_pulse = pulse2deg[2], R_pulse = pulse2deg[3], B_pulse = pulse2deg[4], T_pulse = pulse2deg[5])
         self.mh.connectMH() #Connect to Controller
         self.robodk_rob=RobotPost(r"""Motoman""",r"""Motoman MA2010""",6, axes_type=['R','R','R','R','R','R'],  pulses_x_deg=[1341.4, 1341.4, 1341.4, 1000, 1000, 622],ROBOT_CHOICE=ROBOT_CHOICE)
+
 
     def execute_motion_program(self, filename):
         self.robodk_rob.PROG_FILES=[]
@@ -19,7 +20,7 @@ class MotionProgramExecClient:
         self.mh.servoMH() #Turn Servo on
 
         self.mh.startJobMH('AAA')
-        time.sleep(5)
+        time.sleep(5)   ###TODO: determine when to turn servo off after job finished
         self.mh.servoMH(False) #Turn the Servos of
 
 
