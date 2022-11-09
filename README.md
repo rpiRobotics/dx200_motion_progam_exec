@@ -9,6 +9,7 @@ Controls DX200 with FTP Ethernet functions
 * Command Remote: {MAIN MENU} -> {IN/OUT} -> {PSEUDO INPUT SIGNAL} -> *CMD REMOTE SEL*, press [INTERLOCK]+[SELECT]
 * Enable FTP: {Main Menu} -> {EX.MEMORY}
 * PC IP: Change computer's IP to manual, under the same subnet as DX200's IP
+* Pulse to Deg: {Main Menu} -> {SETUP} -> {FUNCTION ENABLE}. Set ALL AXES ANGLE DISP Function to VALID. {ROBOT} -> {CURRENT POSTION}: Toggle DISPLAY to Pulse/Absolute Degrees
 
 Username is `ftp` and arbitrary password, use the IP set above.
 
