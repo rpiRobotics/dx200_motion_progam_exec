@@ -3,7 +3,13 @@ import sys
 
 from Motoman import RobotPost, Pose
 from MotomanEthernet import MotomanConnector
+# Disable
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
 
+# Restore
+def enablePrint():
+    sys.stdout = sys.__stdout__
 class MotionProgramExecClient:
     def __init__(self, ip='192.168.55.1',ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02]):
         self.ip=ip
@@ -20,7 +26,16 @@ class MotionProgramExecClient:
         self.mh.servoMH() #Turn Servo on
 
         self.mh.startJobMH('AAA')
-        time.sleep(5)   ###TODO: determine when to turn servo off after job finished
+        # time.sleep(30)   ###TODO: determine when to turn servo off after job finished
+        ###block printing
+        blockPrint()
+        while True:
+            [d1,d2]=self.mh.statusMH()
+            d1 = [int(i) for i in bin(int(d1))[2:]]
+            if not d1[4]:
+                break
+        ###enable printing
+        enablePrint()
         self.mh.servoMH(False) #Turn the Servos of
 
 
