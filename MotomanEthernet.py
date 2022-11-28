@@ -205,3 +205,28 @@ class MotomanConnector:
         """
         d1,d2 = self.__sendCMD("START",f"{job}\r")
         return d1, d2
+
+    def readGroup(self):
+        """READ current work group
+
+        Returns:
+            string d1: Robot control group information
+            string d2: Station control group information
+        """
+        d1,d2 = self.__sendCMD("RGROUP","")
+
+        data2_str = d2.decode("utf-8").replace("\r","").split(",")
+        return [eval(i) for i in data2_str]
+
+    def setGroup(self,robot,station=1,task=0):
+        """SET current work group
+        robot: 1 or 2: 2010 or 1440
+        station: 0 or 1: station or not
+        task: default at 0
+        """
+
+        d1,d2=self.__sendCMD("RPOSC",b"3,1,0\r")
+        # if robot==1:
+        #     d1,d2=self.__sendCMD("RPOSC",b"1,1,0\r")
+        # else:
+        #     d1,d2=self.__sendCMD("RPOSC",b"2,1,0\r")

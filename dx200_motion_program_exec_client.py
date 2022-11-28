@@ -1,5 +1,5 @@
 from robodk import *
-import sys
+import sys, copy
 
 from Motoman import RobotPost, Pose
 from MotomanEthernet import MotomanConnector
@@ -29,14 +29,28 @@ class MotionProgramExecClient:
         # time.sleep(30)   ###TODO: determine when to turn servo off after job finished
         ###block printing
         blockPrint()
+        last_reading=np.zeros(6)
+        joint_recording=[]
+        timestamps=[]
         while True:
-            [d1,d2]=self.mh.statusMH()
-            d1 = [int(i) for i in bin(int(d1))[2:]]
-            if not d1[4]:
-                break
+            ###read joint angle
+            new_reading=mh.getJointAnglesMH()
+            timestamps.append(time.time())
+            joint_recording.append(new_reading)
+
+            ###check if robot stop
+            if np.linalg.norm(last_reading-new_reading)==0:
+                [d1,d2]=self.mh.statusMH()
+                d1 = [int(i) for i in bin(int(d1))[2:]]
+                if not d1[4]:       #if robot not running
+                    break
+            last_reading=copy.deepcopy(new_reading)
+            
         ###enable printing
         enablePrint()
         self.mh.servoMH(False) #Turn the Servos of
+
+        return timestamps, joint_recording
 
 
 def main():
