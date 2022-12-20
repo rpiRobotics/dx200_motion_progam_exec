@@ -350,7 +350,7 @@ Temporary Items
 #Extra directories to ignore
 build/
 dist/
-motion_primitive.egg-info/
+dx200_motion_program_exec.egg-info/
 generated_src/
 generated_src
 {"mode":"full","isActive":false}

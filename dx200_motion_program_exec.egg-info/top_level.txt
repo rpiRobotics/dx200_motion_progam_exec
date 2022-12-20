@@ -1,4 +1,0 @@
-Motoman
-MotomanEthernet
-dx200_motion_program_exec_client
-robodk

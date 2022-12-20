@@ -364,6 +364,13 @@ class RobotPost(object):
             
         self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
         self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
+
+    def SetArc(self,on):
+        if on:
+            self.addline('ARCON ASF#(5)')
+        else:
+            self.addline('ARCOF AEF#(1)')
+            # self.addline('CALL JOB:NOBUTTON10')
         
         
     def setFrame(self, pose, frame_id, frame_name):
