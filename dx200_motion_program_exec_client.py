@@ -1,5 +1,6 @@
 from robodk import *
 import sys, copy
+import numpy as np
 
 from Motoman import RobotPost, Pose
 from MotomanEthernet import MotomanConnector
@@ -14,7 +15,7 @@ class MotionProgramExecClient:
     def __init__(self, IP='192.168.55.1',ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02]):
         self.IP=IP
         self.mh=MotomanConnector(IP=IP, PORT=80, S_pulse = pulse2deg[0], L_pulse = pulse2deg[1], U_pulse = pulse2deg[2], R_pulse = pulse2deg[3], B_pulse = pulse2deg[4], T_pulse = pulse2deg[5])
-        self.robodk_rob=RobotPost(r"""Motoman""",r"""Motoman MA2010""",6, axes_type=['R','R','R','R','R','R'],  pulses_x_deg=[1341.4, 1341.4, 1341.4, 1000, 1000, 622],ROBOT_CHOICE=ROBOT_CHOICE)
+        self.robodk_rob=RobotPost(r"""Motoman""",r"""Motoman MA2010""",6, axes_type=['R','R','R','R','R','R'],  pulses_x_deg=pulse2deg,ROBOT_CHOICE=ROBOT_CHOICE)
 
 
     def execute_motion_program(self, filename):
@@ -34,7 +35,7 @@ class MotionProgramExecClient:
         timestamps=[]
         while True:
             ###read joint angle
-            new_reading=mh.getJointAnglesMH()
+            new_reading=np.array(self.mh.getJointAnglesMH())
             timestamps.append(time.time())
             joint_recording.append(new_reading)
 
