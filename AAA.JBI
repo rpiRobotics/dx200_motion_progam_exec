@@ -9,10 +9,10 @@ C00000=0,0,0,0,0,0
 C00001=0,-1651,-20336,0,13929,0
 C00002=0,-36379,-49237,0,9585,0
 //INST
-///DATE 2022/11/11 15:20
+///DATE 2022/12/31 12:21
 ///COMM Generated using RoboDK
 ///ATTR SC,RW
-///GROUP1 RB2
+///GROUP1 RB1
 NOP
 'Using Motoman MA2010 Base (ta
 'rgets wrt base):
