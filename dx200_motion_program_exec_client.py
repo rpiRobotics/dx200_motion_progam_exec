@@ -1,4 +1,4 @@
-import sys, copy, socket, os
+import sys, copy, socket, os, time
 import numpy as np
 
 # from Motoman import *
@@ -71,6 +71,101 @@ def Pose(xyzrpw):
     sc = np.sin(c)
     return np.array([[cb*ca, ca*sc*sb - cc*sa, sc*sa + cc*ca*sb, x],[cb*sa, cc*ca + sc*sb*sa, cc*sb*sa - ca*sc, y],[-sb, cb*sc, cc*cb, z],[0,0,0,1]])
 
+def getFileDir(filepath):
+    """Returns the directory of a file path"""
+    return os.path.dirname(filepath)
+def getBaseName(filepath):
+    """Returns the file name and extension of a file path"""
+    return os.path.basename(filepath)
+def RemoveFileFTP(ftp, filepath):
+    """Delete a file on a remote server."""
+    import ftplib
+    try:
+        ftp.delete(filepath)
+    except ftplib.all_errors as e:
+        import sys
+        print('POPUP: Could not remove file {0}: {1}'.format(filepath, e))
+        sys.stdout.flush()
+def UploadFileFTP(file_path_name, server_ip, remote_path, username, password):
+    """Upload a file to a robot through FTP"""
+    filepath = getFileDir(file_path_name)
+    filename = getBaseName(file_path_name)
+    import ftplib
+    import os
+    import sys
+    print("POPUP: <p>Connecting to <strong>%s</strong> using user name <strong>%s</strong> and password ****</p><p>Please wait...</p>" % (server_ip, username))
+    sys.stdout.flush()
+    try:
+        myFTP = ftplib.FTP(server_ip, username, password)
+    except:
+        error_str = sys.exc_info()[1]
+        print("POPUP: <font color=\"red\">Connection to %s failed: <p>%s</p></font>" % (server_ip, error_str))
+        sys.stdout.flush()
+        time.sleep(4)
+        return False
+
+    remote_path_prog = remote_path + '/' + filename
+    print("POPUP: Connected. Deleting remote file %s..." % remote_path_prog)
+    sys.stdout.flush()
+    RemoveFileFTP(myFTP, remote_path_prog)
+    print("POPUP: Connected. Uploading program to %s..." % server_ip)
+    sys.stdout.flush()
+    try:
+        myFTP.cwd(remote_path)
+    except:
+        error_str = sys.exc_info()[1]
+        print("POPUP: <font color=\"red\">Remote path not found or can't be created: %s</font>" % (remote_path))
+        sys.stdout.flush()
+        time.sleep(4)
+        #contin = mbox("Remote path\n%s\nnot found or can't create folder.\n\nChange path and permissions and retry." % remote_path)
+        return False
+
+    def uploadThis(localfile, filename):
+        print('  Sending file: %s' % localfile)
+        print("POPUP: Sending file: %s" % filename)
+        sys.stdout.flush()
+        fh = open(localfile, 'rb')
+        myFTP.storbinary('STOR %s' % filename, fh)
+        fh.close()
+
+    uploadThis(file_path_name, filename)
+    myFTP.close()
+    print("POPUP: File trasfer completed: <font color=\"blue\">%s</font>" % remote_path_prog)
+    sys.stdout.flush()
+    return True
+
+def UploadFTP(program, robot_ip, remote_path, ftp_user, ftp_pass, pause_sec=2):
+    """Upload a program or a list of programs to the robot through FTP provided the connection parameters"""
+    # Iterate through program list if it is a list of files
+    if isinstance(program, list):
+        if len(program) == 0:
+            print('POPUP: Nothing to transfer')
+            sys.stdout.flush()
+            time.sleep(pause_sec)
+            return
+
+        for prog in program:
+            UploadFTP(prog, robot_ip, remote_path, ftp_user, ftp_pass, 0)
+
+        print("POPUP: <font color=\"blue\">Done: %i files and folders successfully transferred</font>" % len(program))
+        sys.stdout.flush()
+        time.sleep(pause_sec)
+        print("POPUP: Done")
+        sys.stdout.flush()
+        return
+
+    import os
+    if os.path.isfile(program):
+        print('Sending program file %s...' % program)
+        UploadFileFTP(program, robot_ip, remote_path, ftp_user, ftp_pass)
+    else:
+        print('Sending program folder %s...' % program)
+        UploadDirFTP(program, robot_ip, remote_path, ftp_user, ftp_pass)
+
+    time.sleep(pause_sec)
+    print("POPUP: Done")
+    sys.stdout.flush()
+
 # Object class that handles the robot instructions/syntax
 class MotionProgramExecClient(object):
     """Robot post object defined for Motoman robots"""
@@ -140,7 +235,7 @@ class MotionProgramExecClient(object):
         self.PROG = []
         self.LOG = ''
         self.s = socket.socket()        #socket connection
-        self.IP='192.168.55.1'
+        self.IP='192.168.1.31'
         self.PORT=80
 
         for k,v in kwargs.items():
@@ -422,13 +517,7 @@ class MotionProgramExecClient(object):
             self.ACTIVE_TOOL = tool_id
             self.RunMessage('Tool %i (%s) should be close to:' % (self.ACTIVE_TOOL, str(tool_name)), True)
             self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
-        
-    def Pause(self, time_ms):
-        """Pause the robot program"""
-        if time_ms <= 0:
-            self.addline('PAUSE')
-        else:
-            self.addline('TIMER T=%.2f' % (time_ms*0.001))
+
         
     def setSpeed(self, speed_mms):
         """Changes the robot speed (in mm/s)"""
@@ -826,7 +915,7 @@ class MotionProgramExecClient(object):
         self.connectMH() #Connect to Controller
         self.PROG_FILES=[]
         self.PROG_FILES.append(filename)
-        self.ProgSendRobot(self.IP,'JOB',"ftp","")
+        self.ProgSendRobot('JOB',"ftp","")
         ###TODO: figure out return time
         self.servoMH() #Turn Servo on
 
@@ -876,8 +965,8 @@ def main():
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
 
-    # client.execute_motion_program("AAA.JBI")
-    # client.disconnectMH()
+    print(client.execute_motion_program("AAA.JBI"))
+    client.disconnectMH()
 
 if __name__ == "__main__":
     main()
