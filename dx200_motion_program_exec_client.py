@@ -186,7 +186,7 @@ class MotionProgramExecClient(object):
     REGISTER_DIGITS = 5
 
     # Pulses per degree (provide these in the robot parameters menu: Double click the motoman robot in RoboDK, select "Parameters"
-    PULSES_X_DEG = [1341.4, 1341.4, 1341.4, 1000, 1000, 622] 
+    PULSES_X_DEG = None 
 
     # PROG specific variables:
     LINE_COUNT = 0      # Count the number of instructions (limited by MAX_LINES_X_PROG)
@@ -233,6 +233,7 @@ class MotionProgramExecClient(object):
         self.ROBOT_NAME = robotname
         self.nAxes = robot_axes
         self.PROG = []
+        self.PROG_TARGETS=[]
         self.LOG = ''
         self.s = socket.socket()        #socket connection
         self.IP='192.168.1.31'
@@ -241,7 +242,7 @@ class MotionProgramExecClient(object):
         for k,v in kwargs.items():
             if k == 'lines_x_prog':
                 self.MAX_LINES_X_PROG = v            
-            if k == 'pulses_x_deg':
+            if k == 'pulse2deg':
                 self.PULSES_X_DEG = v
             if k=='ROBOT_CHOICE':
                 self.ROBOT_CHOICE = v 
@@ -252,6 +253,8 @@ class MotionProgramExecClient(object):
                 
                 
     def ProgStart(self, progname, new_page = False):
+        self.PROG=[]
+        self.PROG_TARGETS=[]
         progname = get_safe_name(progname)
         progname_i = progname
         if new_page:
@@ -317,15 +320,13 @@ class MotionProgramExecClient(object):
         header_ins += 'NOP'
         #if self.HAS_TURNTABLE:
         #    header = header + '/APPL' + '\n'
-        
+
         self.PROG.insert(0, header_ins)
         self.PROG.append('END')
         
         self.PROG_TARGETS.insert(0, header)
         
-        self.PROG = self.PROG_TARGETS + self.PROG
-        
-        
+        self.PROG = self.PROG_TARGETS + self.PROG        
         
         # Save PROG in PROG_LIST
         self.PROG_LIST.append(self.PROG)
@@ -355,7 +356,6 @@ class MotionProgramExecClient(object):
             fid.write(line)
             fid.write('\n')
         fid.close()
-        print('SAVED: %s\n' % filesave) # tell RoboDK the path of the saved file
         self.PROG_FILES.append(filesave)
         
         # open file with default application
@@ -378,52 +378,8 @@ class MotionProgramExecClient(object):
             
     def ProgSave(self, folder, progname, ask_user = False, show_result = False):
         progname = get_safe_name(progname)
-        nfiles = len(self.PROG_LIST)
-        if nfiles > 1:
-            if self.LINE_COUNT > 0:
-                # Progfinish was not called!
-                print("Warning: ProgFinish was not called properly")
-                self.PROG_LIST.append(self.PROG)
-                self.PROG_NAMES.append("Unknown")
-                self.PROG = []
-                self.LINE_COUNT = 0
-            
-            if len(self.PROG_NAMES_MAIN) > 1:
-                # Warning: the program might be cut to a maximum number of chars
-                progname_main = "M_" + self.PROG_NAMES_MAIN[0]
-                self.INCLUDE_SUB_PROGRAMS = True # Force generation of main program
-                self.ProgStart(progname_main)
-                for prog_call in self.PROG_NAMES_MAIN:
-                    self.RunCode(prog_call, True)
-                    
-                self.ProgFinish(progname_main)
-            
-            # Save the last program added to the PROG_LIST
-            self.PROG = self.PROG_LIST.pop()
-            progname_last = self.PROG_NAMES.pop()
-            self.progsave(folder, progname_last, ask_user, show_result)
-            #-------------------------
-            #self.LOG = ''
-            if len(self.PROG_FILES) == 0:
-                # cancelled by user
-                return
-                
-            first_file = self.PROG_FILES[0]
-            folder_user = getFileDir(first_file)
-            # progname_user = getFileName(self.FILE_SAVED)
-            
-            # Generate each program
-            for i in range(len(self.PROG_LIST)):
-                self.PROG = self.PROG_LIST[i]
-                self.progsave(folder_user, self.PROG_NAMES[i], False, show_result)
-                
-        elif nfiles == 1:
-            self.PROG = self.PROG_LIST.pop()
-            self.progsave(folder, progname, ask_user, show_result)
-            
-        else:
-            print("Warning! Program has not been properly finished")
-            self.progsave(folder, progname, ask_user, show_result)
+        self.PROG = self.PROG_LIST.pop()
+        self.progsave(folder, progname, ask_user, show_result)
 
         if show_result and len(self.LOG) > 0:
             mbox('Program generation LOG:\n\n' + self.LOG)
@@ -519,35 +475,6 @@ class MotionProgramExecClient(object):
             self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
 
         
-    def setSpeed(self, speed_mms):
-        """Changes the robot speed (in mm/s)"""
-        speed_cm_min = speed_mms * 60.0 / 10.0
-        speedl = max(0.01,min(speed_cm_min,200.0)) # Important! Filter linear speed is in mm/s or cm/min (otherwise the program stops)
-        self.STR_V = "V=%.1f" % speedl
-    
-    def setAcceleration(self, accel_mmss):
-        """Changes the robot acceleration (in mm/s2)"""
-        self.addlog('Set acceleration not defined')
-    
-    def setSpeedJoints(self, speed_degs):
-        """Changes the robot joint speed (in deg/s)"""
-        speedj = max(0.01,min(speed,100.0)) # Joint speed must be in %
-        if speedj < 100:
-            self.STR_VJ = "VJ=%.2f" % speedj
-        else:
-            self.STR_VJ = "VJ=%.1f" % speedj
-    
-    def setAccelerationJoints(self, accel_degss):
-        """Changes the robot joint acceleration (in deg/s2)"""
-        self.addlog('Set acceleration not defined')
-        
-    def setZoneData(self, zone_mm):
-        """Changes the zone data approach (makes the movement more smooth)"""
-        if zone_mm < 0:
-            self.STR_PL = ''
-        else:
-            self.STR_PL = ' PL=%i' % round(min(zone_mm, 8))        
-        
     def setDO(self, io_var, io_value):
         """Sets a variable (output) to a given value"""
         if type(io_var) != str:  # set default variable name if io_var is a number
@@ -581,21 +508,6 @@ class MotionProgramExecClient(object):
             self.addline('WAIT %s=%s T=%.2f' % (io_var, io_value, timeout_ms*0.001))
        
             
-    def RunCode(self, code, is_function_call = False):
-        """Adds code or a function call"""
-        if is_function_call:
-            code = get_safe_name(code,8)
-            #if code.startswith("ArcStart"):
-                #return
-                
-            # default program call
-            code.replace(' ','_')
-            self.addline('CALL JOB:%s' % (code))
-        else:
-            #if code.endswith(';'):
-                #code = code[:-1]
-            self.addline(code)
-        
     def RunMessage(self, message, iscomment = False):
         """Add a joint movement"""
         if iscomment:
@@ -690,7 +602,7 @@ class MotionProgramExecClient(object):
         str_pulses=[]        
         for i in range(len(joints)):
             str_pulses.append('%i' % round(joints[i] * self.PULSES_X_DEG[i]))
-        
+
         self.addline_targets('C%05i=' % cid + ','.join(str_pulses))         
         return cid
     
