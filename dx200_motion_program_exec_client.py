@@ -410,8 +410,11 @@ class MotionProgramExecClient(object):
         """Add a circular movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
 
-        target_id1 = self.add_target_cartesian(self.POSE_FRAME*pose1, joints1, conf_RLF_1)
-        target_id2 = self.add_target_cartesian(self.POSE_FRAME*pose2, joints2, conf_RLF_2)
+        # target_id1 = self.add_target_cartesian(self.POSE_FRAME*pose1, joints1, conf_RLF_1)
+        # target_id2 = self.add_target_cartesian(self.POSE_FRAME*pose2, joints2, conf_RLF_2)
+
+        target_id1 = self.add_target_joints(joints1)
+        target_id2 = self.add_target_joints(joints2)
             
         self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
         self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
@@ -421,12 +424,12 @@ class MotionProgramExecClient(object):
             if on:
                 self.addline('ARCON '+'AC='+str(AC)+' AVP='+str(AVP)+' V='+str(V))
             else:
-                self.addline('ARCOF AEF#(1)')
+                self.addline('ARCOF')
         else:
             if on:
-                self.addline('ARCON ASF#(5)')
+                self.addline('ARCON')
             else:
-                self.addline('ARCOF AEF#(1)')
+                self.addline('ARCOF')
         
         
     def setFrame(self, pose, frame_id, frame_name):
@@ -883,7 +886,28 @@ def main():
     client.ProgSave(".","AAA",False)
 
     print(client.execute_motion_program("AAA.JBI"))
-    client.disconnectMH()
+
+def movec_test():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+
+    ###TODO: fix tool definition
+    # client.motoman.DONT_USE_SETTOOL=False
+    # client.motoman.setTool(Pose([0,0,450,0,0,0]), None, 'welder')
+    client.ACTIVE_TOOL=1
+
+    client.ProgStart(r"""AAA""")
+    client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
+    q1=np.array([-35.4291,56.6333,40.5194,4.5177,-52.2505,-11.6546])
+    q2=np.array([-35.4291,60.6333,40.5194,4.5177,-52.2505,-11.6546])
+    q3=np.array([-36.8918,61.1844,48.1628,3.6876,-55.2334,-9.6293])
+    client.MoveJ(None,q1,1,0)
+    client.MoveC(None, q2, None, q3, 10,0)
+
+    client.ProgFinish(r"""AAA""")
+    client.ProgSave(".","AAA",False)
+
+    # print(client.execute_motion_program("AAA.JBI"))
+
 
 if __name__ == "__main__":
-    main()
+    movec_test()
