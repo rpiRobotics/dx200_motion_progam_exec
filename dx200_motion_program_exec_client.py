@@ -395,29 +395,25 @@ class MotionProgramExecClient(object):
         target_id = self.add_target_joints(joints)
         self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                    
         
-    def MoveL(self, pose, joints, speed, zone, conf_RLF=None):
+    def MoveL(self, joints, speed, zone, conf_RLF=None):
         """Add a linear movement"""        
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
                 
-        if pose is None:
-            target_id = self.add_target_joints(joints)
-        else:
-            target_id = self.add_target_cartesian(self.POSE_FRAME*pose, joints, conf_RLF)
+        target_id = self.add_target_joints(joints)
 
         self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))        
         
-    def MoveC(self, pose1, joints1, pose2, joints2, speed, zone, conf_RLF_1=None, conf_RLF_2=None):
+    def MoveC(self, joints1, joints2, joints3, speed, zone, conf_RLF_1=None, conf_RLF_2=None):
         """Add a circular movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
 
-        # target_id1 = self.add_target_cartesian(self.POSE_FRAME*pose1, joints1, conf_RLF_1)
-        # target_id2 = self.add_target_cartesian(self.POSE_FRAME*pose2, joints2, conf_RLF_2)
-
         target_id1 = self.add_target_joints(joints1)
         target_id2 = self.add_target_joints(joints2)
+        target_id3 = self.add_target_joints(joints3)
             
-        self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
-        self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
+        self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+        self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+        self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))
 
     def SetArc(self,on,AC=None,AVP=None,V=None):
         if AC:
@@ -897,16 +893,16 @@ def movec_test():
 
     client.ProgStart(r"""AAA""")
     client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
-    q1=np.array([-35.4291,56.6333,40.5194,4.5177,-52.2505,-11.6546])
-    q2=np.array([-35.4291,60.6333,40.5194,4.5177,-52.2505,-11.6546])
-    q3=np.array([-36.8918,61.1844,48.1628,3.6876,-55.2334,-9.6293])
+    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
+    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
+    q3=np.array([29.3548,5.8107,-20.41,27.3331,-58.956,-86.4])
     client.MoveJ(None,q1,1,0)
-    client.MoveC(None, q2, None, q3, 10,0)
+    client.MoveC(q1, q2, q3, 10,0)
 
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
 
-    # print(client.execute_motion_program("AAA.JBI"))
+    print(client.execute_motion_program("AAA.JBI"))
 
 
 if __name__ == "__main__":
