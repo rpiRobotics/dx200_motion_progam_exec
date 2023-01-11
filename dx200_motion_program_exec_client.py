@@ -389,13 +389,13 @@ class MotionProgramExecClient(object):
         The connection parameters must be provided in the robot connection menu of RoboDK"""
         UploadFTP(self.PROG_FILES, self.IP, remote_path, ftp_user, ftp_pass)
         
-    def MoveJ(self, pose, joints, speed, zone):
+    def MoveJ(self, joints, speed, zone):
         """Add a joint movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         target_id = self.add_target_joints(joints)
         self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                    
         
-    def MoveL(self, joints, speed, zone, conf_RLF=None):
+    def MoveL(self, joints, speed, zone):
         """Add a linear movement"""        
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
                 
@@ -403,7 +403,7 @@ class MotionProgramExecClient(object):
 
         self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))        
         
-    def MoveC(self, joints1, joints2, joints3, speed, zone, conf_RLF_1=None, conf_RLF_2=None):
+    def MoveC(self, joints1, joints2, joints3, speed, zone):
         """Add a circular movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
 
