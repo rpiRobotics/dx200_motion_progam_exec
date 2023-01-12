@@ -284,14 +284,13 @@ class MotionProgramExecClient(object):
         header_ins = ''
         header_ins += '//INST' + '\n'
         header_ins += '///DATE %s' % datestr + '\n'
-        #///DATE 2012/04/25 14:11
-        header_ins += '///COMM Generated using RoboDK\n' # comment: max 28 chars
+
         if self.ROBOT_CHOICE2:
             header_ins += '///ATTR SC,RW,RJ' + '\n'
             if self.ACTIVE_FRAME is not None:
                 header_ins += '///FRAME USER %i' % self.ACTIVE_FRAME + '\n'    
 
-            header_ins += '///GROUP1 '+self.ROBOT_CHOICE + ' '+self.ROBOT_CHOICE2 + '\n'       
+            header_ins += '///GROUP1 '+self.ROBOT_CHOICE + ','+self.ROBOT_CHOICE2 + '\n'       
         else:
             header_ins += '///ATTR SC,RW' + '\n'
             header_ins += '///GROUP1 '+self.ROBOT_CHOICE + '\n'
@@ -395,9 +394,9 @@ class MotionProgramExecClient(object):
             target_id3 = self.add_target_joints(joints3)
             target_id3_2 = self.add_target_joints(target2[3])
                 
-            self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' + ' + target2[0]+" C%05d %s%s" % (target_id1_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
-            self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' + ' + target2[0]+" C%05d %s%s" % (target_id2_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
-            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' + ' + target2[0]+" C%05d %s%s" % (target_id3_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+            self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" C%05d %s%s" % (target_id1_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+            self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" C%05d %s%s" % (target_id2_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' +' + target2[0]+" C%05d %s%s" % (target_id3_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
 
             # self.addline("MOVC C%05d %s%s + " target2[0] + " C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8)), target_id1_2, "V=%.1f" % target2[4], ' PL=%i' % round(min(1, 8))))
             # self.addline("MOVC C%05d %s%s + " target2[0] + " C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8)), target_id2_2, "V=%.1f" % target2[4], ' PL=%i' % round(min(1, 8))))
@@ -839,7 +838,7 @@ def movec_test():
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
 
-    # print(client.execute_motion_program("AAA.JBI"))
+    print(client.execute_motion_program("AAA.JBI"))
 
 def multimove_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
@@ -855,16 +854,16 @@ def multimove_test():
     q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
     q3=np.array([29.3548,5.8107,-20.41,27.3331,-58.956,-86.4])
     client.MoveJ(q1,1,0)
-    target2=['MOVJ',[0,0],[1,1],[2,2],1,0]
+    target2=['MOVJ',[-15,180],[-15,160],[-15,140],1,0]
     client.MoveC(q1, q2, q3, 10,0,target2=target2)
 
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
 
-    # print(client.execute_motion_program("AAA.JBI"))
+    print(client.execute_motion_program("AAA.JBI"))
 
 
 
 if __name__ == "__main__":
-    # multimove_test()
-    movec_test()
+    multimove_test()
+    # movec_test()
