@@ -860,7 +860,7 @@ def multimove_test():
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
 
-    print(client.execute_motion_program("AAA.JBI"))
+    # print(client.execute_motion_program("AAA.JBI"))
 
 
 
