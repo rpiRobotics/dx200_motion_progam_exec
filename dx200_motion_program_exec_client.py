@@ -411,12 +411,12 @@ class MotionProgramExecClient(object):
             self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i FPT' % round(min(zone, 8))))
 
 
-    def SetArc(self,on,AC=None,AVP=None,V=None):
-        if AC:
+    def SetArc(self,on,cond_num=None):
+        if cond_num:
             if on:
-                self.addline('ARCON '+'AC='+str(AC)+' AVP='+str(AVP)+' V='+str(V))
+                self.addline('ARCON '+'ASF#('+str(cond_num)+')')
             else:
-                self.addline('ARCOF')
+                self.addline('ARCOF '+'AEF#('+str(cond_num)+')')
         else:
             if on:
                 self.addline('ARCON')
