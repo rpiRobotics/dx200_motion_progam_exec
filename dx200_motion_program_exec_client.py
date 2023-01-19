@@ -183,6 +183,7 @@ class MotionProgramExecClient(object):
     LINE_COUNT = 0      # Count the number of instructions (limited by MAX_LINES_X_PROG)
     P_COUNT = 0         # Count the number of P targets in one file
     C_COUNT = 0         # Count the number of P targets in one file
+    EC_COUNT = 0
     nProgs = 0          # Count the number of programs and sub programs
     LBL_ID_COUNT = 0    # Number of labels used
     
@@ -200,6 +201,7 @@ class MotionProgramExecClient(object):
     
     PROG = []     # Save the program lines
     PROG_TARGETS = []  # Save the program lines (targets section)
+    PROG_TARGETS2 = []
     LOG = '' # Save a log
     
     nAxes = 6 # Important: This is usually provided by RoboDK automatically. Otherwise, override the __init__ procedure. 
@@ -215,18 +217,16 @@ class MotionProgramExecClient(object):
     LAST_CONFDATA = [None, None, None, None] # [pulses(None, Pulses(0), Cartesian) ,  base(or None), tool, config]
 
     
-    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, robot_axes = 6):
+    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, robot_axes = 6, pulse2deg_2=None):
         if self.DONT_USE_MFRAME:
             self.ACTIVE_FRAME = None
         self.nAxes = robot_axes
-        self.PROG = []
-        self.PROG_TARGETS=[]
-        self.LOG = ''
         self.s = socket.socket()        #socket connection
 
 
         self.ROBOT_CHOICE = ROBOT_CHOICE
         self.PULSES_X_DEG = pulse2deg
+        self.PULSES_X_DEG_2 = pulse2deg_2
         self.IP=IP
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
@@ -235,6 +235,7 @@ class MotionProgramExecClient(object):
     def ProgStart(self, progname, new_page = False):
         self.PROG=[]
         self.PROG_TARGETS=[]
+        self.PROG_TARGETS2=[]
         progname = get_safe_name(progname)
         progname_i = progname
         if new_page:
@@ -274,7 +275,7 @@ class MotionProgramExecClient(object):
         header += '/JOB' + '\n'
         header += '//NAME %s' % progname + '\n'
         header += '//POS' + '\n'
-        header += '///NPOS %i,0,0,%i,0,0' % (self.C_COUNT, self.P_COUNT)
+        header += '///NPOS %i,0,%i,%i,0,0' % (self.C_COUNT, self.EC_COUNT, self.P_COUNT)
         
         # Targets are added at this point       
         
@@ -286,11 +287,12 @@ class MotionProgramExecClient(object):
         header_ins += '///DATE %s' % datestr + '\n'
 
         if self.ROBOT_CHOICE2:
-            header_ins += '///ATTR SC,RW,RJ' + '\n'
+            header_ins += '///ATTR SC,RW' + '\n'
             if self.ACTIVE_FRAME is not None:
                 header_ins += '///FRAME USER %i' % self.ACTIVE_FRAME + '\n'    
 
-            header_ins += '///GROUP1 '+self.ROBOT_CHOICE + ','+self.ROBOT_CHOICE2 + '\n'       
+            header_ins += '///GROUP1 '+self.ROBOT_CHOICE + '\n'
+            header_ins += '///GROUP2 '+self.ROBOT_CHOICE2 + '\n'    
         else:
             header_ins += '///ATTR SC,RW' + '\n'
             header_ins += '///GROUP1 '+self.ROBOT_CHOICE + '\n'
@@ -304,15 +306,17 @@ class MotionProgramExecClient(object):
         
         self.PROG_TARGETS.insert(0, header)
         
-        self.PROG = self.PROG_TARGETS + self.PROG        
+        self.PROG = self.PROG_TARGETS + self.PROG_TARGETS2 + self.PROG        
         
         # Save PROG in PROG_LIST
         self.PROG_LIST.append(self.PROG)
         self.PROG = []
         self.PROG_TARGETS = []
+        self.PROG_TARGETS2 = []
         self.LINE_COUNT = 0
         self.P_COUNT = 0
         self.C_COUNT = 0
+        self.EC_COUNT = 0
         self.LAST_CONFDATA = [None, None, None, None]
         self.LBL_ID_COUNT = 0
         
@@ -367,44 +371,50 @@ class MotionProgramExecClient(object):
         The connection parameters must be provided in the robot connection menu of RoboDK"""
         UploadFTP(self.PROG_FILES, self.IP, remote_path, ftp_user, ftp_pass)
         
-    def MoveJ(self, joints, speed, zone):
+    def MoveJ(self, joints, speed, zone, target2=None):
+        ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a joint movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         target_id = self.add_target_joints(joints)
-        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                    
+
+        if target2:
+            target_id_2 = self.add_target_joints2(target2[1])
+            self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s%s" % (target_id_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))  
+
+        else:
+            self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                  
         
-    def MoveL(self, joints, speed, zone):
+    def MoveL(self, joints, speed, zone, target2=None):
+        ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a linear movement"""        
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
-                
         target_id = self.add_target_joints(joints)
 
-        self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))        
+        if target2:
+            target_id_2 = self.add_target_joints(target2[1])
+            self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s%s" % (target_id_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))        
+        else:
+            self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))        
         
     def MoveC(self, joints1, joints2, joints3, speed, zone, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a circular movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
 
+        target_id1 = self.add_target_joints(joints1)
+        target_id2 = self.add_target_joints(joints2)
+        target_id3 = self.add_target_joints(joints3)
+        
         if target2:
-            target_id1 = self.add_target_joints(joints1)
             target_id1_2 = self.add_target_joints(target2[1])
-            target_id2 = self.add_target_joints(joints2)
             target_id2_2 = self.add_target_joints(target2[2])
-            target_id3 = self.add_target_joints(joints3)
             target_id3_2 = self.add_target_joints(target2[3])
                 
-            self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" C%05d %s%s" % (target_id1_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
-            self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" C%05d %s%s" % (target_id2_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
-            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' +' + target2[0]+" C%05d %s%s" % (target_id3_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+            self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s%s" % (target_id1_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+            self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s%s" % (target_id2_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' +' + target2[0]+" EC%05d %s%s" % (target_id3_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
 
-            # self.addline("MOVC C%05d %s%s + " target2[0] + " C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8)), target_id1_2, "V=%.1f" % target2[4], ' PL=%i' % round(min(1, 8))))
-            # self.addline("MOVC C%05d %s%s + " target2[0] + " C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8)), target_id2_2, "V=%.1f" % target2[4], ' PL=%i' % round(min(1, 8))))
-            # self.addline("MOVC C%05d %s%s + " target2[0] + " C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8)), target_id3_2, "V=%.1f" % target2[4], ' PL=%i' % round(min(1, 8))))
         else:
-            target_id1 = self.add_target_joints(joints1)
-            target_id2 = self.add_target_joints(joints2)
-            target_id3 = self.add_target_joints(joints3)
                 
             self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
             self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
@@ -535,21 +545,16 @@ class MotionProgramExecClient(object):
         self.page_size_control()        
         self.LINE_COUNT = self.LINE_COUNT + 1
         self.PROG.append(newline)
-            
-    def addline_targets(self, newline):
-        """Add a line at the end of the program (used for targets)"""
-        self.PROG_TARGETS.append(newline)
-        
 
     def setPulses(self):
         #self.LAST_CONFDATA = [none/pulses(0)/postype(1), base, tool, config]
         if self.LAST_CONFDATA[0] is None:
-            self.addline_targets("///TOOL %i" % self.ACTIVE_TOOL)
+            self.PROG_TARGETS.append("///TOOL %i" % self.ACTIVE_TOOL)
             self.LAST_CONFDATA[2] = self.ACTIVE_TOOL
        
         if self.LAST_CONFDATA[0] != 1:
-            self.addline_targets("///POSTYPE PULSE")
-            self.addline_targets("///PULSE")
+            self.PROG_TARGETS.append("///POSTYPE PULSE")
+            self.PROG_TARGETS.append("///PULSE")
             self.LAST_CONFDATA[0] = 1
             
         self.LAST_CONFDATA[0] = 1
@@ -569,8 +574,23 @@ class MotionProgramExecClient(object):
         for i in range(len(joints)):
             str_pulses.append('%i' % round(joints[i] * self.PULSES_X_DEG[i]))
 
-        self.addline_targets('C%05i=' % cid + ','.join(str_pulses))         
+        self.PROG_TARGETS.append('C%05i=' % cid + ','.join(str_pulses))         
         return cid
+
+    def add_target_joints2(self, joints):    
+        if self.nProgs > 1 and not self.INCLUDE_SUB_PROGRAMS:
+            return
+
+        self.setPulses()            
+        ecid = self.EC_COUNT
+        self.EC_COUNT = self.EC_COUNT + 1        
+                
+        str_pulses=[]        
+        for i in range(len(joints)):
+            str_pulses.append('%i' % round(joints[i] * self.PULSES_X_DEG_2[i]))
+
+        self.PROG_TARGETS2.append('EC%05i=' % ecid + ','.join(str_pulses))         
+        return ecid
     
     ##################ADVANCED ETHERNET FUNCTION############################
     def __sendCMD(self,command,payload):
@@ -841,7 +861,7 @@ def movec_test():
     print(client.execute_motion_program("AAA.JBI"))
 
 def multimove_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
 
     ###TODO: fix tool definition
     # client.motoman.DONT_USE_SETTOOL=False
@@ -853,9 +873,13 @@ def multimove_test():
     q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
     q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
     q3=np.array([29.3548,5.8107,-20.41,27.3331,-58.956,-86.4])
-    client.MoveJ(q1,1,0)
+
     target2=['MOVJ',[-15,180],[-15,160],[-15,140],1,0]
-    client.MoveC(q1, q2, q3, 10,0,target2=target2)
+    target2J_1=['MOVJ',[-15,180],1,0]
+    target2J_2=['MOVJ',[-15,160],1,0]
+
+    client.MoveJ(q1, 10,0,target2=target2J_1)
+    client.MoveJ(q2, 10,0,target2=target2J_2)
 
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
