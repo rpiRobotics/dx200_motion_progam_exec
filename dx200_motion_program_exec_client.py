@@ -379,7 +379,10 @@ class MotionProgramExecClient(object):
 
         if target2:
             target_id_2 = self.add_target_joints2(target2[1])
-            self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s%s" % (target_id_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))  
+            if 'J' in target2[0]:
+                self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed)) 
+            else:
+                self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "V=%.1f" % speed))  
 
         else:
             self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                  
@@ -391,8 +394,12 @@ class MotionProgramExecClient(object):
         target_id = self.add_target_joints(joints)
 
         if target2:
-            target_id_2 = self.add_target_joints(target2[1])
-            self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s%s" % (target_id_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))        
+            target_id_2 = self.add_target_joints2(target2[1])
+            if 'J' in target2[0]:
+                self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed))                        
+            else:
+                self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "V=%.1f" % speed))        
+
         else:
             self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))        
         
@@ -406,13 +413,20 @@ class MotionProgramExecClient(object):
         target_id3 = self.add_target_joints(joints3)
         
         if target2:
-            target_id1_2 = self.add_target_joints(target2[1])
-            target_id2_2 = self.add_target_joints(target2[2])
-            target_id3_2 = self.add_target_joints(target2[3])
+            target_id1_2 = self.add_target_joints2(target2[1])
+            target_id2_2 = self.add_target_joints2(target2[2])
+            target_id3_2 = self.add_target_joints2(target2[3])
+
+            if 'J' in target2[0]:
+                self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id1_2, "VJ=%.1f" % speed))
+                self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id2_2, "VJ=%.1f" % speed))
+                self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id3_2, "VJ=%.1f" % speed))
+
+            else:
                 
-            self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s%s" % (target_id1_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
-            self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s%s" % (target_id2_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
-            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' +' + target2[0]+" EC%05d %s%s" % (target_id3_2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))))
+                self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id1_2, "V=%.1f" % speed))
+                self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id2_2, "V=%.1f" % speed))
+                self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id3_2, "V=%.1f" % speed))
 
         else:
                 
@@ -861,7 +875,7 @@ def movec_test():
     print(client.execute_motion_program("AAA.JBI"))
 
 def multimove_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB2',ROBOT_CHOICE2='ST1',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1994.3054,1376.714])
 
     ###TODO: fix tool definition
     # client.motoman.DONT_USE_SETTOOL=False
@@ -870,24 +884,31 @@ def multimove_test():
 
     client.ProgStart(r"""AAA""")
     client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
-    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
-    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
-    q3=np.array([29.3548,5.8107,-20.41,27.3331,-58.956,-86.4])
+    q1=np.array([43.5893,72.1362,45.2749,-84.0966,24.3644,94.2091])
+    q2=np.array([34.6291,55.5756,15.4033,-28.8363,24.0298,3.6855])
+    q3=np.array([27.3821,51.3582,-19.8428,-21.2525,71.6314,-62.8669])
 
     target2=['MOVJ',[-15,180],[-15,160],[-15,140],1,0]
     target2J_1=['MOVJ',[-15,180],1,0]
-    target2J_2=['MOVJ',[-15,160],1,0]
+    target2J_2=['MOVJ',[-15,140],1,0]
+    target2J_3=['MOVJ',[-15,100],1,0]
 
-    client.MoveJ(q1, 10,0,target2=target2J_1)
-    client.MoveJ(q2, 10,0,target2=target2J_2)
+    client.MoveJ(q1, 1,0,target2=target2J_1)
+    client.MoveL(q2, 10,0,target2=target2J_2)
+    client.MoveL(q3, 10,0,target2=target2J_3)
 
     client.ProgFinish(r"""AAA""")
     client.ProgSave(".","AAA",False)
 
-    # print(client.execute_motion_program("AAA.JBI"))
+    print(client.execute_motion_program("AAA.JBI"))
 
+def send_exe():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
+
+    client.execute_motion_program("AAA.JBI")
 
 
 if __name__ == "__main__":
+    # send_exe()
     multimove_test()
     # movec_test()
