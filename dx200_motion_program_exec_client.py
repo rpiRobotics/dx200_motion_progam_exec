@@ -230,6 +230,8 @@ class MotionProgramExecClient(object):
         self.IP=IP
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
+
+        self.ProgStart(r"""AAA""")
                 
                 
     def ProgStart(self, progname, new_page = False):
@@ -261,6 +263,10 @@ class MotionProgramExecClient(object):
             
         self.PROG_NAME_CURRENT = progname_i
         self.PROG_NAMES.append(progname_i)
+
+    def ProgEnd(self):
+        self.ProgFinish(r"""AAA""")
+        self.ProgSave(".","AAA",False)
         
     def ProgFinish(self, progname, new_page = False):
         progname = get_safe_name(progname)
@@ -375,18 +381,23 @@ class MotionProgramExecClient(object):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a joint movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
-        target_id = self.add_target_joints(joints)
-
-        if target2:
-            target_id_2 = self.add_target_joints2(target2[1])
-            if 'J' in target2[0]:
-                self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed)) 
-            else:
-                self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "V=%.1f" % speed))  
-
-        else:
-            self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                  
         
+
+        if 'ST' in self.ROBOT_CHOICE:
+            target_id = self.add_target_joints2(joints,self.PULSES_X_DEG)
+            self.addline("MOVJ EC%05d %s" % (target_id, "VJ=%.1f" % speed))
+        else:
+            target_id = self.add_target_joints(joints)
+            if target2:
+                target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
+                if 'J' in target2[0]:
+                    self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed)) 
+                else:
+                    self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "V=%.1f" % speed))  
+
+            else:
+                self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, ' PL=%i' % round(min(zone, 8))))                  
+            
     def MoveL(self, joints, speed, zone, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a linear movement"""        
@@ -394,7 +405,7 @@ class MotionProgramExecClient(object):
         target_id = self.add_target_joints(joints)
 
         if target2:
-            target_id_2 = self.add_target_joints2(target2[1])
+            target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
             if 'J' in target2[0]:
                 self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, ' PL=%i' % round(min(zone, 8)))+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed))                        
             else:
@@ -413,9 +424,9 @@ class MotionProgramExecClient(object):
         target_id3 = self.add_target_joints(joints3)
         
         if target2:
-            target_id1_2 = self.add_target_joints2(target2[1])
-            target_id2_2 = self.add_target_joints2(target2[2])
-            target_id3_2 = self.add_target_joints2(target2[3])
+            target_id1_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
+            target_id2_2 = self.add_target_joints2(target2[2],self.PULSES_X_DEG_2)
+            target_id3_2 = self.add_target_joints2(target2[3],self.PULSES_X_DEG_2)
 
             if 'J' in target2[0]:
                 self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, ' PL=%i' % round(min(1, 8))) + ' +' + target2[0]+" EC%05d %s" % (target_id1_2, "VJ=%.1f" % speed))
@@ -591,7 +602,7 @@ class MotionProgramExecClient(object):
         self.PROG_TARGETS.append('C%05i=' % cid + ','.join(str_pulses))         
         return cid
 
-    def add_target_joints2(self, joints):    
+    def add_target_joints2(self, joints,pulse2deg): 
         if self.nProgs > 1 and not self.INCLUDE_SUB_PROGRAMS:
             return
 
@@ -601,7 +612,7 @@ class MotionProgramExecClient(object):
                 
         str_pulses=[]        
         for i in range(len(joints)):
-            str_pulses.append('%i' % round(joints[i] * self.PULSES_X_DEG_2[i]))
+            str_pulses.append('%i' % round(joints[i] * pulse2deg[i]))
 
         self.PROG_TARGETS2.append('EC%05i=' % ecid + ','.join(str_pulses))         
         return ecid
@@ -831,59 +842,37 @@ class MotionProgramExecClient(object):
         self.servoMH(False) #Turn the Servos of
         self.disconnectMH() #DISConnect to Controller
         
-        return timestamps, joint_recording
+        return np.array(timestamps), np.array(joint_recording)
 
 
 
 def main():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
-    ###TODO: fix tool definition
-    # client.motoman.DONT_USE_SETTOOL=False
-    # client.motoman.setTool(Pose([0,0,450,0,0,0]), None, 'welder')
-    client.ACTIVE_TOOL=1
-
-    client.ProgStart(r"""AAA""")
     client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
     client.MoveJ([0,0,0,0,0,0],10,0)
     client.MoveJ([0,-1.23097,-15.1604,0,13.9294,0],10,0)
     client.MoveJ([0,-27.1205,-36.7057,0,9.58517,0],10,0)
-    client.ProgFinish(r"""AAA""")
-    client.ProgSave(".","AAA",False)
+    client.ProgEnd()
 
     print(client.execute_motion_program("AAA.JBI"))
 
 def movec_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
-    ###TODO: fix tool definition
-    # client.motoman.DONT_USE_SETTOOL=False
-    # client.motoman.setTool(Pose([0,0,450,0,0,0]), None, 'welder')
-    client.ACTIVE_TOOL=1
-
-    client.ProgStart(r"""AAA""")
-    client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
     q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
     q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
     q3=np.array([29.3548,5.8107,-20.41,27.3331,-58.956,-86.4])
     client.MoveJ(q1,1,0)
     client.MoveC(q1, q2, q3, 10,0)
 
-    client.ProgFinish(r"""AAA""")
-    client.ProgSave(".","AAA",False)
+    client.ProgEnd()
 
     print(client.execute_motion_program("AAA.JBI"))
 
-def multimove_test():
+def multimove_test():           ###multimove with robot+ positioner
     client=MotionProgramExecClient(ROBOT_CHOICE='RB2',ROBOT_CHOICE2='ST1',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1994.3054,1376.714])
 
-    ###TODO: fix tool definition
-    # client.motoman.DONT_USE_SETTOOL=False
-    # client.motoman.setTool(Pose([0,0,450,0,0,0]), None, 'welder')
-    client.ACTIVE_TOOL=1
-
-    client.ProgStart(r"""AAA""")
-    client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
     q1=np.array([43.5893,72.1362,45.2749,-84.0966,24.3644,94.2091])
     q2=np.array([34.6291,55.5756,15.4033,-28.8363,24.0298,3.6855])
     q3=np.array([27.3821,51.3582,-19.8428,-21.2525,71.6314,-62.8669])
@@ -897,9 +886,25 @@ def multimove_test():
     client.MoveL(q2, 10,0,target2=target2J_2)
     client.MoveL(q3, 10,0,target2=target2J_3)
 
-    client.ProgFinish(r"""AAA""")
-    client.ProgSave(".","AAA",False)
+    client.ProgEnd()
+    print(client.execute_motion_program("AAA.JBI"))
 
+def multimove_test2():  ####multimove with 2 robots
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB2',ROBOT_CHOICE2='RB1',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+
+    q1=np.array([43.5893,72.1362,45.2749,-84.0966,24.3644,94.2091])
+    q2=np.array([34.6291,55.5756,15.4033,-28.8363,24.0298,3.6855])
+    q3=np.array([27.3821,51.3582,-19.8428,-21.2525,71.6314,-62.8669])
+
+    target2J_1=['MOVJ',q1,1,0]
+    target2J_2=['MOVJ',q2,1,0]
+    target2J_3=['MOVJ',q3,1,0]
+
+    client.MoveJ(q1, 1,0,target2=target2J_1)
+    client.MoveL(q2, 10,0,target2=target2J_2)
+    client.MoveL(q3, 10,0,target2=target2J_3)
+
+    client.ProgEnd()
     print(client.execute_motion_program("AAA.JBI"))
 
 def send_exe():
@@ -910,5 +915,5 @@ def send_exe():
 
 if __name__ == "__main__":
     # send_exe()
-    multimove_test()
+    multimove_test2()
     # movec_test()
