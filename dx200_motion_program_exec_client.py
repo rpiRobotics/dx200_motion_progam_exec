@@ -680,9 +680,11 @@ class MotionProgramExecClient(object):
         d1, d2 = self.__sendCMD("RPOSJ","")
 
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
-
+        print(data2_str)
         data2_arr = [int(data2_str[0])/self.PULSES_X_DEG[0],int(data2_str[1])/self.PULSES_X_DEG[1],int(data2_str[2])/self.PULSES_X_DEG[2],int(data2_str[3])/self.PULSES_X_DEG[3],int(data2_str[4])/self.PULSES_X_DEG[4],int(data2_str[5])/self.PULSES_X_DEG[5]]
         return data2_arr
+
+
 
     def getCoordinatesMH(self,coordinateSystem = 0): #Somehow our controller raises an internal error
         """Read the current Position in reference to a selectable coordinate system, currently Broken on DX Controllers!
@@ -912,8 +914,12 @@ def send_exe():
 
     client.execute_motion_program("AAA.JBI")
 
-
+def read_joint():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
+    client.connectMH()
+    client.getJointAnglesMH()
 if __name__ == "__main__":
     # send_exe()
-    multimove_test2()
+    # multimove_test()
     # movec_test()
+    read_joint()
