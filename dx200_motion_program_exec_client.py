@@ -231,10 +231,10 @@ class MotionProgramExecClient(object):
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
 
-        self.ProgStart(r"""AAA""")
+        self.ProgStart()
                 
                 
-    def ProgStart(self, progname, new_page = False):
+    def ProgStart(self, progname=r"""AAA""", new_page = False):
         self.PROG=[]
         self.PROG_TARGETS=[]
         self.PROG_TARGETS2=[]
@@ -810,7 +810,7 @@ class MotionProgramExecClient(object):
         #     d1,d2=self.__sendCMD("RPOSC",b"2,1,0\r")
 
     ##############################EXECUTION############################################
-    def execute_motion_program(self, filename):
+    def execute_motion_program(self, filename="AAA.JBI"):
         self.connectMH() #Connect to Controller
         self.PROG_FILES=[]
         self.PROG_FILES.append(filename)
