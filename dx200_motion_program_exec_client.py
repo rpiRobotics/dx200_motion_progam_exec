@@ -1,4 +1,4 @@
-import sys, copy, socket, os, time
+import sys, copy, socket, os, time, struct
 import numpy as np
 
 # from Motoman import *
@@ -221,7 +221,10 @@ class MotionProgramExecClient(object):
         if self.DONT_USE_MFRAME:
             self.ACTIVE_FRAME = None
         self.nAxes = robot_axes
-        self.s = socket.socket()        #socket connection
+        self.s = socket.socket()        #ethernet function socket connection
+        self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
+        self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.s_MP.bind(('0.0.0.0',11000))
 
 
         self.ROBOT_CHOICE = ROBOT_CHOICE
@@ -869,12 +872,14 @@ class MotionProgramExecClient(object):
         # time.sleep(30)   ###TODO: determine when to turn servo off after job finished
         ###block printing
         blockPrint()
-        last_reading=np.zeros(6)
+        last_reading=np.zeros(14)
         joint_recording=[]
         timestamps=[]
         while True:
             ###read joint angle
-            new_reading=np.array(self.getJointAnglesMH())
+            # new_reading=np.array(self.getJointAnglesMH())
+            new_reading=np.array(struct.unpack("<16i",self.s_MP.recv(1024))[2:])
+
             timestamps.append(time.time())
             joint_recording.append(new_reading)
 
@@ -965,6 +970,7 @@ def read_joint():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
     client.connectMH()
     client.getJointAnglesMH()
+
 def zone_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
@@ -978,5 +984,5 @@ if __name__ == "__main__":
     # send_exe()
     # multimove_robots()
     # movec_test()
-    # read_joint()
-    zone_test()
+    read_joint()
+    # zone_test()
