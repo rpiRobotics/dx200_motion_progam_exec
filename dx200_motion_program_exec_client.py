@@ -414,6 +414,7 @@ class MotionProgramExecClient(object):
             
     def MoveL(self, joints, speed, zone=None, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
+        ###joints: degrees
         """Add a linear movement"""        
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         target_id = self.add_target_joints(joints)
@@ -504,6 +505,9 @@ class MotionProgramExecClient(object):
                 self.addline('ARCON')
             else:
                 self.addline('ARCOF')
+
+    def ChangeArc(self,cond_num):
+        self.addline('ARCSET '+'ASF#('+str(cond_num)+')')
         
         
     def setFrame(self, pose, frame_id, frame_name):
@@ -871,17 +875,18 @@ class MotionProgramExecClient(object):
         self.startJobMH('AAA')
         # time.sleep(30)   ###TODO: determine when to turn servo off after job finished
         ###block printing
-        blockPrint()
+        # blockPrint()
         last_reading=np.zeros(14)
         joint_recording=[]
         timestamps=[]
         while True:
             ###read joint angle
             # new_reading=np.array(self.getJointAnglesMH())
-            new_reading=np.array(struct.unpack("<16i",self.s_MP.recv(1024))[2:])
-
+            buf = self.s_MP.recv(1024)
+            new_reading = np.array(struct.unpack("<16i",buf)[2:])
+            print(new_reading)
             timestamps.append(time.time())
-            joint_recording.append(new_reading)
+            joint_recording.append(copy.deepcopy(new_reading))
 
             ###check if robot stop
             if np.linalg.norm(last_reading-new_reading)==0:
@@ -892,7 +897,7 @@ class MotionProgramExecClient(object):
             last_reading=copy.deepcopy(new_reading)
             
         ###enable printing
-        enablePrint()
+        # enablePrint()
         self.servoMH(False) #Turn the Servos of
         self.disconnectMH() #DISConnect to Controller
         
