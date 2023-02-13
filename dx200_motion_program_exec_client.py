@@ -1,4 +1,4 @@
-import sys, copy, socket, os, time, struct
+import sys, copy, socket, os, time, struct, traceback, threading
 import numpy as np
 
 # from Motoman import *
@@ -166,6 +166,15 @@ def UploadFTP(program, robot_ip, remote_path, ftp_user, ftp_pass, pause_sec=2):
     print("POPUP: Done")
     sys.stdout.flush()
 
+def socket_clear():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind(('0.0.0.0',11000))
+
+    hz=[]
+    buf = s.recv(1024)
+    data = struct.unpack("<16i",buf)
+    print(data)
+
 # Object class that handles the robot instructions/syntax
 class MotionProgramExecClient(object):
     """Robot post object defined for Motoman robots"""
@@ -225,7 +234,7 @@ class MotionProgramExecClient(object):
         self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
         self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s_MP.bind(('0.0.0.0',11000))
-
+        self._lock=threading.Lock()
 
         self.ROBOT_CHOICE = ROBOT_CHOICE
         self.PULSES_X_DEG = pulse2deg
@@ -863,6 +872,25 @@ class MotionProgramExecClient(object):
         # else:
         #     d1,d2=self.__sendCMD("RPOSC",b"2,1,0\r")
 
+    def threadfunc(self):
+        while(self._streaming):
+            with self._lock:
+                try:
+                    buf = self.s_MP.recv(1024)
+                    data = struct.unpack("<16i",buf)
+                    self.joint_angle=np.array(data[2:])
+                    # print(self.joint_angle)
+                except:
+                    traceback.print_exc()
+
+    def StartStreaming(self):
+        self._streaming=True
+        t=threading.Thread(target=self.threadfunc)
+        t.start()
+    def StopStreaming():
+        self._streaming=False
+
+
     ##############################EXECUTION############################################
     def execute_motion_program(self, filename="AAA.JBI"):
         self.connectMH() #Connect to Controller
@@ -881,20 +909,22 @@ class MotionProgramExecClient(object):
         timestamps=[]
         while True:
             ###read joint angle
+            print(self.joint_angle)
             # new_reading=np.array(self.getJointAnglesMH())
-            buf = self.s_MP.recv(1024)
-            new_reading = np.array(struct.unpack("<16i",buf)[2:])
-            print(new_reading)
-            timestamps.append(time.time())
-            joint_recording.append(copy.deepcopy(new_reading))
 
-            ###check if robot stop
-            if np.linalg.norm(last_reading-new_reading)==0:
-                [d1,d2]=self.statusMH()
-                d1 = [int(i) for i in bin(int(d1))[2:]]
-                if not d1[4]:       #if robot not running
-                    break
-            last_reading=copy.deepcopy(new_reading)
+            # buf = self.s_MP.recv(1024)
+            # new_reading = np.array(struct.unpack("<16i",buf)[2:])
+            # print(new_reading)
+            # timestamps.append(time.time())
+            # joint_recording.append(copy.deepcopy(new_reading))
+
+            # ###check if robot stop
+            # if np.linalg.norm(last_reading-new_reading)==0:
+            #     [d1,d2]=self.statusMH()
+            #     d1 = [int(i) for i in bin(int(d1))[2:]]
+            #     if not d1[4]:       #if robot not running
+            #         break
+            # last_reading=copy.deepcopy(new_reading)
             
         ###enable printing
         # enablePrint()
@@ -976,6 +1006,9 @@ def read_joint():
     client.connectMH()
     client.getJointAnglesMH()
 
+def read_joint2():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client.StartStreaming()    
 def zone_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
@@ -989,5 +1022,5 @@ if __name__ == "__main__":
     # send_exe()
     # multimove_robots()
     # movec_test()
-    read_joint()
+    read_joint2()
     # zone_test()
