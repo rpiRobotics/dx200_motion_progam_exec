@@ -880,7 +880,7 @@ class MotionProgramExecClient(object):
                     buf = self.s_MP.recv(1024)
                     data = struct.unpack("<16i",buf)
                     self.joint_angle=np.array(data[2:])
-                    print(self.joint_angle)
+                    # print(self.joint_angle)
                 except:
                     traceback.print_exc()
 
@@ -903,7 +903,6 @@ class MotionProgramExecClient(object):
         self.servoMH() #Turn Servo on
 
         self.startJobMH('AAA')
-        # time.sleep(30)   ###TODO: determine when to turn servo off after job finished
         ###block printing
         # blockPrint()
         last_reading=np.zeros(14)
@@ -911,14 +910,9 @@ class MotionProgramExecClient(object):
         timestamps=[]
         while True:
             ###read joint angle
-            print(self.joint_angle)
-            # new_reading=np.array(self.getJointAnglesMH())
-
-            # buf = self.s_MP.recv(1024)
-            # new_reading = np.array(struct.unpack("<16i",buf)[2:])
-            # print(new_reading)
-            # timestamps.append(time.time())
-            # joint_recording.append(copy.deepcopy(new_reading))
+            time.sleep(0.001)
+            timestamps.append(time.time())
+            joint_recording.append(copy.deepcopy(self.joint_angle))
 
             ###check if robot stop
             if np.linalg.norm(last_reading-self.joint_angle)==0:
@@ -1011,7 +1005,14 @@ def read_joint():
 
 def read_joint2():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    client.StartStreaming()    
+    # client.StartStreaming()
+    client.MoveJ(np.zeros(6), 1,0)
+    client.MoveJ(5*np.ones(6), 1,0)
+    client.MoveJ(np.zeros(6), 1,0)
+    client.ProgEnd()
+    client.execute_motion_program("AAA.JBI")  
+    # client.StopStreaming()
+
 def zone_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
