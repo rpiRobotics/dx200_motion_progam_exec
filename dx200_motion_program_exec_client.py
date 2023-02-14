@@ -244,6 +244,7 @@ class MotionProgramExecClient(object):
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
 
         self.ProgStart()
+        
                 
                 
     def ProgStart(self, progname=r"""AAA""", new_page = False):
@@ -879,7 +880,7 @@ class MotionProgramExecClient(object):
                     buf = self.s_MP.recv(1024)
                     data = struct.unpack("<16i",buf)
                     self.joint_angle=np.array(data[2:])
-                    # print(self.joint_angle)
+                    print(self.joint_angle)
                 except:
                     traceback.print_exc()
 
@@ -887,12 +888,13 @@ class MotionProgramExecClient(object):
         self._streaming=True
         t=threading.Thread(target=self.threadfunc)
         t.start()
-    def StopStreaming():
+    def StopStreaming(self):
         self._streaming=False
 
 
     ##############################EXECUTION############################################
     def execute_motion_program(self, filename="AAA.JBI"):
+        self.StartStreaming() 
         self.connectMH() #Connect to Controller
         self.PROG_FILES=[]
         self.PROG_FILES.append(filename)
@@ -918,18 +920,19 @@ class MotionProgramExecClient(object):
             # timestamps.append(time.time())
             # joint_recording.append(copy.deepcopy(new_reading))
 
-            # ###check if robot stop
-            # if np.linalg.norm(last_reading-new_reading)==0:
-            #     [d1,d2]=self.statusMH()
-            #     d1 = [int(i) for i in bin(int(d1))[2:]]
-            #     if not d1[4]:       #if robot not running
-            #         break
-            # last_reading=copy.deepcopy(new_reading)
+            ###check if robot stop
+            if np.linalg.norm(last_reading-self.joint_angle)==0:
+                [d1,d2]=self.statusMH()
+                d1 = [int(i) for i in bin(int(d1))[2:]]
+                if not d1[4]:       #if robot not running
+                    break
+            last_reading=copy.deepcopy(self.joint_angle)
             
         ###enable printing
         # enablePrint()
         self.servoMH(False) #Turn the Servos of
         self.disconnectMH() #DISConnect to Controller
+        self.StopStreaming() 
         
         return np.array(timestamps), np.array(joint_recording)
 
