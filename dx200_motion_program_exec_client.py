@@ -873,28 +873,28 @@ class MotionProgramExecClient(object):
         # else:
         #     d1,d2=self.__sendCMD("RPOSC",b"2,1,0\r")
 
-    def threadfunc(self):
-        while(self._streaming):
-            with self._lock:
-                try:
-                    buf = self.s_MP.recv(1024)
-                    data = struct.unpack("<16i",buf)
-                    self.joint_angle=np.array(data[2:])
-                    # print(self.joint_angle)
-                except:
-                    traceback.print_exc()
+    # def threadfunc(self):
+    #     while(self._streaming):
+    #         with self._lock:
+    #             try:
+    #                 buf = self.s_MP.recv(1024)
+    #                 data = struct.unpack("<16i",buf)
+    #                 self.joint_angle=np.array(data[2:])
+    #                 # print(self.joint_angle)
+    #             except:
+    #                 traceback.print_exc()
 
-    def StartStreaming(self):
-        self._streaming=True
-        t=threading.Thread(target=self.threadfunc)
-        t.start()
-    def StopStreaming(self):
-        self._streaming=False
+    # def StartStreaming(self):
+    #     self._streaming=True
+    #     t=threading.Thread(target=self.threadfunc)
+    #     t.start()
+    # def StopStreaming(self):
+    #     self._streaming=False
 
 
     ##############################EXECUTION############################################
     def execute_motion_program(self, filename="AAA.JBI"):
-        self.StartStreaming() 
+        # self.StartStreaming() 
         self.connectMH() #Connect to Controller
         self.PROG_FILES=[]
         self.PROG_FILES.append(filename)
@@ -904,29 +904,50 @@ class MotionProgramExecClient(object):
 
         self.startJobMH('AAA')
         ###block printing
-        # blockPrint()
+        blockPrint()
         last_reading=np.zeros(14)
         joint_recording=[]
         timestamps=[]
+        same_count=10
         while True:
             ###read joint angle
-            time.sleep(0.001)
-            timestamps.append(time.time())
-            joint_recording.append(copy.deepcopy(self.joint_angle))
+            # time.sleep(0.002)
+            # timestamps.append(time.time())
+            # joint_recording.append(copy.deepcopy(self.joint_angle))
 
-            ###check if robot stop
-            if np.linalg.norm(last_reading-self.joint_angle)==0:
+            # ###check if robot stop
+            # if np.linalg.norm(last_reading-self.joint_angle)==0:
+            #     same_count+=1
+            #     if same_count>10:
+            #         with self._lock:
+            #             [d1,d2]=self.statusMH()
+            #             d1 = [int(i) for i in bin(int(d1))[2:]]
+            #             if not d1[4]:       #if robot not running
+            #                 break
+            # else:
+            #     last_reading=copy.deepcopy(self.joint_angle)
+            #     same_count=0
+
+            buf = self.s_MP.recv(1024)
+            data = struct.unpack("<16i",buf)
+            joint_angle=np.array(data[2:])
+            joint_recording.append(joint_angle)
+            timestamps.append(time.time())
+            if np.linalg.norm(last_reading-joint_angle)==0:
                 [d1,d2]=self.statusMH()
                 d1 = [int(i) for i in bin(int(d1))[2:]]
                 if not d1[4]:       #if robot not running
                     break
-            last_reading=copy.deepcopy(self.joint_angle)
+            last_reading=copy.deepcopy(joint_angle)
+            
+
+            
             
         ###enable printing
-        # enablePrint()
+        enablePrint()
         self.servoMH(False) #Turn the Servos of
         self.disconnectMH() #DISConnect to Controller
-        self.StopStreaming() 
+        # self.StopStreaming() 
         
         return np.array(timestamps), np.array(joint_recording)
 
