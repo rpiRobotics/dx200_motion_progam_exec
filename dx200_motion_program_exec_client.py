@@ -1,5 +1,6 @@
-import sys, copy, socket, os, time, struct, traceback, threading
+import sys, copy, socket, os, time, struct, traceback, threading, select
 import numpy as np
+from contextlib import suppress
 
 # from Motoman import *
 # Disable print
@@ -230,7 +231,6 @@ class MotionProgramExecClient(object):
         if self.DONT_USE_MFRAME:
             self.ACTIVE_FRAME = None
         self.nAxes = robot_axes
-        self.s = socket.socket()        #ethernet function socket connection
         self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
         self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s_MP.bind(('0.0.0.0',11000))
@@ -242,6 +242,7 @@ class MotionProgramExecClient(object):
         self.IP=IP
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
+        self.buf_struct = struct.Struct("<16i")
 
         self.ProgStart()
         
@@ -698,22 +699,28 @@ class MotionProgramExecClient(object):
         """
 
         print(command,payload)
+        self.s = socket.socket()        #ethernet function socket connection
+        self.connectMH()
+        try:
 
-        self.s.send(bytes(f"HOSTCTRL_REQUEST {command} {len(payload)}\r\n","utf-8"))
-        data = self.s.recv(1024)
-        print(f'Received: {repr(data)}')
+            self.s.send(bytes(f"HOSTCTRL_REQUEST {command} {len(payload)}\r\n","utf-8"))
+            data = self.s.recv(1024)
+            print(f'Received: {repr(data)}')
 
-        if data[:2] != b"OK":
-            print(f"COMMAND ({command}) ERROR")
-            raise Exception("Yaskawa Error!")
+            if data[:2] != b"OK":
+                print(f"COMMAND ({command}) ERROR")
+                raise Exception("Yaskawa Error!")
 
-        elif len(payload) > 0:
-            self.s.send(bytes(f"{payload}","utf-8"))
-        
-        data2 = self.s.recv(1024)
-        print(f'Received: {repr(data2)}')
-        
-        return data, data2
+            elif len(payload) > 0:
+                self.s.send(bytes(f"{payload}","utf-8"))
+            
+            data2 = self.s.recv(1024)
+            print(f'Received: {repr(data2)}')
+            
+            return data, data2
+        finally:
+            with suppress(Exception):
+                self.disconnectMH()
 
 
     def connectMH(self):
@@ -873,83 +880,115 @@ class MotionProgramExecClient(object):
         # else:
         #     d1,d2=self.__sendCMD("RPOSC",b"2,1,0\r")
 
-    # def threadfunc(self):
-    #     while(self._streaming):
-    #         with self._lock:
-    #             try:
-    #                 buf = self.s_MP.recv(1024)
-    #                 data = struct.unpack("<16i",buf)
-    #                 self.joint_angle=np.array(data[2:])
-    #                 # print(self.joint_angle)
-    #             except:
-    #                 traceback.print_exc()
+    def threadfunc(self):
+        while(self._streaming):
+            try:                
+                res, data = self.receive_from_robot(0.01)
+                if res:
+                    with self._lock:
+                        self.joint_angle=np.array(data[2:])
+                        # print(self.joint_angle)
+            except:
+                traceback.print_exc()
 
-    # def StartStreaming(self):
-    #     self._streaming=True
-    #     t=threading.Thread(target=self.threadfunc)
-    #     t.start()
-    # def StopStreaming(self):
-    #     self._streaming=False
+    def receive_from_robot(self, timeout=0):
+        """
+        Receive feedback from the robot. Specify an optional timeout. Returns a tuple with success and the current
+        robot state.
+        :param timeout: Timeout in seconds. May be zero to immediately return if there is no new data.
+        :return: Success and robot state as a tuple
+        """
+        s=self.s_MP
+        s_list=[s]
+        try:
+            res=select.select(s_list, [], s_list, timeout)
+        except select.error as err:
+            if err.args[0] == errno.EINTR:
+                return False, None
+            else:
+                raise
+
+        if len(res[0]) == 0 and len(res[2])==0:
+            return False, None
+        try:
+            (buf, addr)=s.recvfrom(65536)
+        except:
+            return False, None
+
+        data = self.buf_struct.unpack(buf)
+        return True, data
+
+    def StartStreaming(self):
+        self._streaming=True
+        t=threading.Thread(target=self.threadfunc)
+        t.daemon=True
+        t.start()
+    def StopStreaming(self):
+        self._streaming=False
 
 
     ##############################EXECUTION############################################
     def execute_motion_program(self, filename="AAA.JBI"):
-        # self.StartStreaming() 
-        self.connectMH() #Connect to Controller
-        self.PROG_FILES=[]
-        self.PROG_FILES.append(filename)
-        self.ProgSendRobot('JOB',"ftp","")
-        ###TODO: figure out return time
-        self.servoMH() #Turn Servo on
+        self.StartStreaming()
+        try:
+            # self.connectMH() #Connect to Controller
+            self.PROG_FILES=[]
+            self.PROG_FILES.append(filename)
+            self.ProgSendRobot('JOB',"ftp","")
+            ###TODO: figure out return time
+            self.servoMH() #Turn Servo on
 
-        self.startJobMH('AAA')
-        ###block printing
-        blockPrint()
-        last_reading=np.zeros(14)
-        joint_recording=[]
-        timestamps=[]
-        same_count=10
-        while True:
-            ###read joint angle
-            # time.sleep(0.002)
-            # timestamps.append(time.time())
-            # joint_recording.append(copy.deepcopy(self.joint_angle))
+            self.startJobMH('AAA')
+            ###block printing
+            # blockPrint()
+            last_reading=np.zeros(14)
+            joint_recording=[]
+            timestamps=[]
+            same_count=10
+            while True:
+                ###read joint angle
+                time.sleep(0.002)
+                timestamps.append(time.time())
+                joint_recording.append(copy.deepcopy(self.joint_angle))
 
-            # ###check if robot stop
-            # if np.linalg.norm(last_reading-self.joint_angle)==0:
-            #     same_count+=1
-            #     if same_count>10:
-            #         with self._lock:
-            #             [d1,d2]=self.statusMH()
-            #             d1 = [int(i) for i in bin(int(d1))[2:]]
-            #             if not d1[4]:       #if robot not running
-            #                 break
-            # else:
-            #     last_reading=copy.deepcopy(self.joint_angle)
-            #     same_count=0
+                ###check if robot stop
+                # print(f"norm: {np.linalg.norm(last_reading-self.joint_angle)}")
+                if np.linalg.norm(last_reading-self.joint_angle)==0:
+                    same_count+=1
+                    if same_count>5:
+                        with self._lock:
+                            [d1,d2]=self.statusMH()
+                            d1 = [int(i) for i in bin(int(d1))[2:]]
+                            if not d1[4]:       #if robot not running
+                                break
+                else:
+                    last_reading=copy.deepcopy(self.joint_angle)
+                    same_count=0
 
-            buf = self.s_MP.recv(1024)
-            data = struct.unpack("<16i",buf)
-            joint_angle=np.array(data[2:])
-            joint_recording.append(joint_angle)
-            timestamps.append(time.time())
-            if np.linalg.norm(last_reading-joint_angle)==0:
-                [d1,d2]=self.statusMH()
-                d1 = [int(i) for i in bin(int(d1))[2:]]
-                if not d1[4]:       #if robot not running
-                    break
-            last_reading=copy.deepcopy(joint_angle)
-            
+                # buf = self.s_MP.recv(1024)
+                # data = struct.unpack("<16i",buf)
+                # joint_angle=np.array(data[2:])
+                # print(joint_angle)
+                # joint_recording.append(joint_angle)
+                # timestamps.append(time.time())
+                # if np.linalg.norm(last_reading-joint_angle)==0:
+                #     [d1,d2]=self.statusMH()
+                #     d1 = [int(i) for i in bin(int(d1))[2:]]
+                #     if not d1[4]:       #if robot not running
+                #         break
+                # last_reading=copy.deepcopy(joint_angle)
+                
 
-            
-            
-        ###enable printing
-        enablePrint()
-        self.servoMH(False) #Turn the Servos of
-        self.disconnectMH() #DISConnect to Controller
-        # self.StopStreaming() 
+                
+                
+            ###enable printing
+            # enablePrint()
+            self.servoMH(False) #Turn the Servos of
+            # self.disconnectMH() #DISConnect to Controller
+            return np.array(timestamps), np.array(joint_recording)
+        finally:
+            self.StopStreaming()        
         
-        return np.array(timestamps), np.array(joint_recording)
 
 
 
@@ -991,7 +1030,7 @@ def multimove_positioner():           ###multimove with robot+ positioner
 
     client.MoveJ(q1, 1,0,target2=target2J_1)
     client.MoveL(q2, 10,0,target2=target2J_2)
-    client.MoveL(q3, 10,0,target2=target2J_3)
+    # client.MoveL(q3, 10,0,target2=target2J_3)
 
     client.ProgEnd()
     print(client.execute_motion_program("AAA.JBI"))
@@ -1045,7 +1084,7 @@ def zone_test():
     client.ProgEnd()
 if __name__ == "__main__":
     # send_exe()
-    # multimove_robots()
+    multimove_positioner()
     # movec_test()
-    read_joint2()
+    # read_joint2()
     # zone_test()
