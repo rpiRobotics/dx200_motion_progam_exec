@@ -511,7 +511,7 @@ class MotionProgramExecClient(object):
             if on:
                 self.addline('ARCON '+'ASF#('+str(cond_num)+')')
             else:
-                self.addline('ARCOF '+'AEF#('+str(cond_num)+')')
+                self.addline('ARCOF')
         else:
             if on:
                 self.addline('ARCON')
