@@ -173,7 +173,7 @@ def socket_clear():
 
     hz=[]
     buf = s.recv(1024)
-    data = struct.unpack("<16i",buf)
+    data = struct.unpack("<20i",buf)
     print(data)
 
 # Object class that handles the robot instructions/syntax
@@ -237,6 +237,7 @@ class MotionProgramExecClient(object):
         self._lock=threading.Lock()
         self._recording=False
 
+        #hardcoded p2d for all robots in series
         self.p2d_all=np.abs([1.341416193724337745e+03,-1.907685083229250267e+03,1.592916090846681982e+03,-1.022871664227330484e+03,9.802549195016306385e+02,-4.547554799861444508e+02,1.435355447016790322e+03,-1.300329111270902331e+03,1.422225409601069941e+03,-9.699560942607320158e+02,9.802408285708806943e+02,-4.547552630640436178e+02,1.994305423691586839e+03,-1.376714027419670856e+03])
 
         self.ROBOT_CHOICE = ROBOT_CHOICE
@@ -245,7 +246,7 @@ class MotionProgramExecClient(object):
         self.IP=IP
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
-        self.buf_struct = struct.Struct("<16i")
+        self.buf_struct = struct.Struct("<20i")
 
         self.ProgStart()
         
@@ -889,10 +890,10 @@ class MotionProgramExecClient(object):
                 res, data = self.receive_from_robot(0.01)
                 if res:
                     with self._lock:
-                        self.joint_angle=np.divide(np.array(data[2:]),self.p2d_all)
+                        self.joint_angle=np.divide(np.array(data[2:16]),self.p2d_all)
                         # print(self.joint_angle)
                         if self._recording:
-                            self.joint_recording.append(np.array([time.time()]+list(data[2:])))
+                            self.joint_recording.append(np.array([time.time()]+self.joint_angle.tolist()))
                         else:
                             self.joint_recording=[]
             except:
