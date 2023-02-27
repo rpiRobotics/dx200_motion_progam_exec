@@ -11,6 +11,6 @@ while True:
     now=time.time()
     buf = s.recv(1024)
     data = struct.unpack("<16i",buf)
-    print(np.array(data[2:]))
+    print(np.array(data))
     # hz.append(1/(time.time()-now))
     # print(np.average(hz))
