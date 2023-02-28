@@ -892,8 +892,9 @@ class MotionProgramExecClient(object):
                     with self._lock:
                         self.joint_angle=np.divide(np.array(data[2:16]),self.p2d_all)
                         # print(self.joint_angle)
+                        timestamp=data[0]+data[1]*1e-9
                         if self._recording:
-                            self.joint_recording.append(np.array([time.time()]+self.joint_angle.tolist()))
+                            self.joint_recording.append(np.array([timestamp]+self.joint_angle.tolist()))
                         else:
                             self.joint_recording=[]
             except:
@@ -951,8 +952,6 @@ class MotionProgramExecClient(object):
             ###block printing
             # blockPrint()
             last_reading=np.zeros(14)
-            joint_recording=[]
-            timestamps=[]
             same_count=10
             while True:
                 time.sleep(0.001)
