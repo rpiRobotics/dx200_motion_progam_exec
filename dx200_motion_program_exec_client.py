@@ -524,7 +524,11 @@ class MotionProgramExecClient(object):
     def ChangeArc(self,cond_num):
         self.addline('ARCSET '+'ASF#('+str(cond_num)+')')
         
-        
+
+    def setPulse(self,OT,duration):
+        self.addline('PULSE OT#('+str(OT)+') T='+'%.2f' % duration)
+
+
     def setFrame(self, pose, frame_id, frame_name):
         """Change the robot reference frame"""
         xyzwpr = pose_2_xyzrpw(pose)
