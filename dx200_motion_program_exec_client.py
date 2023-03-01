@@ -894,7 +894,7 @@ class MotionProgramExecClient(object):
                 res, data = self.receive_from_robot(0.01)
                 if res:
                     with self._lock:
-                        self.joint_angle=np.divide(np.array(data[2:16]),self.p2d_all)
+                        self.joint_angle=np.radians(np.divide(np.array(data[2:16]),self.p2d_all))
                         # print(self.joint_angle)
                         timestamp=data[0]+data[1]*1e-9
                         if self._recording:
