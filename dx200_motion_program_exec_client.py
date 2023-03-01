@@ -528,6 +528,9 @@ class MotionProgramExecClient(object):
     def setPulse(self,OT,duration):
         self.addline('PULSE OT#('+str(OT)+') T='+'%.2f' % duration)
 
+    def touchsense(self,joints, speed ,distance):
+        target_id = self.add_target_joints(joints)
+        self.addline("MOVL C%05d %s" % (target_id, "V=%.1f" % speed)+'SRCH RIN#(3)=ON DIS=%.1f' distance)   
 
     def setFrame(self, pose, frame_id, frame_name):
         """Change the robot reference frame"""
