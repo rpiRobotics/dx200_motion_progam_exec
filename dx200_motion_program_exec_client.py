@@ -514,7 +514,7 @@ class MotionProgramExecClient(object):
             if on:
                 self.addline('ARCON '+'ASF#('+str(cond_num)+')')
             else:
-                self.addline('ARCOF')
+                self.addline('ARCOF '+'AEF#('+str(cond_num)+')')
         else:
             if on:
                 self.addline('ARCON')
@@ -525,12 +525,10 @@ class MotionProgramExecClient(object):
         self.addline('ARCSET '+'ASF#('+str(cond_num)+')')
         
 
-    def setPulse(self,OT,duration):
-        self.addline('PULSE OT#('+str(OT)+') T='+'%.2f' % duration)
-
     def touchsense(self,joints, speed ,distance):
+
         target_id = self.add_target_joints(joints)
-        self.addline("MOVL C%05d %s" % (target_id, "V=%.1f" % speed)+'SRCH RIN#(3)=ON DIS=%.1f' distance)   
+        self.addline("MOVL C%05d V=%.1f SRCH RIN#(3)=ON DIS=%.1f" % (target_id, speed, distance))
 
     def setFrame(self, pose, frame_id, frame_name):
         """Change the robot reference frame"""
@@ -560,29 +558,35 @@ class MotionProgramExecClient(object):
                 self.RunMessage('Frame %i (%s) should be close to:' % (self.ACTIVE_FRAME, str(frame_name)), True)
                 self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
         
-    def setTool(self, pose, tool_id, tool_name):
-        """Change the robot TCP"""
-        xyzwpr = pose_2_xyzrpw(pose)
-        if tool_id is None or tool_id < 0:
-            if self.DONT_USE_SETTOOL:
-                self.RunMessage('Tool %s should be close to:' % (str(tool_name)), True)
-                self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
-            else:
-                self.RunMessage('Setting Tool %i (%s):' % (self.ACTIVE_TOOL, str(tool_name)), True)            
-                decimals = [1000,1000,1000,100,100,100]
-                for i in range(6):
-                    self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR, i+1, round(xyzwpr[i]*decimals[i])))
-                for i in range(6,self.nAxes):
-                    self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR, i+1, 0))
+    # def setTool(self, pose, tool_id, tool_name):
+    #     """Change the robot TCP"""
+    #     xyzwpr = pose_2_xyzrpw(pose)
+    #     if tool_id is None or tool_id < 0:
+    #         if self.DONT_USE_SETTOOL:
+    #             self.RunMessage('Tool %s should be close to:' % (str(tool_name)), True)
+    #             self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
+    #         else:
+    #             self.RunMessage('Setting Tool %i (%s):' % (self.ACTIVE_TOOL, str(tool_name)), True)            
+    #             decimals = [1000,1000,1000,100,100,100]
+    #             for i in range(6):
+    #                 self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR, i+1, round(xyzwpr[i]*decimals[i])))
+    #             for i in range(6,self.nAxes):
+    #                 self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR, i+1, 0))
                     
-                self.addline("SETTOOL TL#(%i) P%05d" % (self.ACTIVE_TOOL, self.SPARE_PR))
+    #             self.addline("SETTOOL TL#(%i) P%05d" % (self.ACTIVE_TOOL, self.SPARE_PR))
                 
-        else:
-            self.ACTIVE_TOOL = tool_id
-            self.RunMessage('Tool %i (%s) should be close to:' % (self.ACTIVE_TOOL, str(tool_name)), True)
-            self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
+    #     else:
+    #         self.ACTIVE_TOOL = tool_id
+    #         self.RunMessage('Tool %i (%s) should be close to:' % (self.ACTIVE_TOOL, str(tool_name)), True)
+    #         self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
 
-        
+    def setTool(self, tool_id):
+        self.addline("// TOOL#(%i)" % tool_id)
+
+
+    def setDOPulse(self,io_var,duration):        
+        self.addline('PULSE OT#(%s) T=%.2f' % (io_var, duration))
+
     def setDO(self, io_var, io_value):
         """Sets a variable (output) to a given value"""
         if type(io_var) != str:  # set default variable name if io_var is a number
@@ -1074,9 +1078,29 @@ def zone_test():
     client.MoveL(q2, 10)
 
     client.ProgEnd()
+
+def DO_test():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client.setDO(4092,1)
+    client.setDOPulse(11,2)
+    client.setDO(4092,0)
+    client.ProgEnd()
+    # client.execute_motion_program("AAA.JBI")  
+
+def Touch_test():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
+    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
+    client.MoveJ(q1,1,0)
+    client.touchsense(q2, 25 ,20)
+    client.ProgEnd()
+    # client.execute_motion_program("AAA.JBI") 
 if __name__ == "__main__":
     # send_exe()
-    multimove_positioner()
+    # multimove_positioner()
     # movec_test()
     # read_joint2()
     # zone_test()
+    
+    # DO_test()
+    Touch_test()
