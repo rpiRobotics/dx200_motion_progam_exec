@@ -247,6 +247,7 @@ class MotionProgramExecClient(object):
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
         self.buf_struct = struct.Struct("<20i")
+        self.joint_recording=[]
 
         self.ProgStart()
         
@@ -1095,7 +1096,7 @@ def Touch_test():
     client.touchsense(q2, 10 ,20)
     client.ProgEnd()
     client.execute_motion_program("AAA.JBI") 
-    
+
 if __name__ == "__main__":
     # send_exe()
     # multimove_positioner()
