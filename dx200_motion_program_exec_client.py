@@ -1085,16 +1085,17 @@ def DO_test():
     client.setDOPulse(11,2)
     client.setDO(4092,0)
     client.ProgEnd()
-    # client.execute_motion_program("AAA.JBI")  
+    client.execute_motion_program("AAA.JBI")  
 
 def Touch_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
-    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
+    q1=np.array([-32.3278,34.4634,11.3912,-14.2208,-50.0826,39.8111])
+    q2=np.array([-32.3264,36.432,9.0947,-15.1946,-46.0499,41.2464])
     client.MoveJ(q1,1,0)
-    client.touchsense(q2, 25 ,20)
+    client.touchsense(q2, 10 ,20)
     client.ProgEnd()
-    # client.execute_motion_program("AAA.JBI") 
+    client.execute_motion_program("AAA.JBI") 
+    
 if __name__ == "__main__":
     # send_exe()
     # multimove_positioner()
