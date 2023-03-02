@@ -12,14 +12,32 @@ Controls DX200 with FTP Ethernet functions
 * PC IP: Change computer's IP to manual, under the same subnet as DX200's IP
 * Pulse to Deg: {Main Menu} -> {SETUP} -> {FUNCTION ENABLE}. Set ALL AXES ANGLE DISP Function to VALID. {ROBOT} -> {CURRENT POSTION}: 
 Toggle DISPLAY to Pulse/Absolute Degrees
-* Tool Data: Under Safety Mode,  {Main Menu} -> {ROBOT} -> {TOOL}
+* Tool Calibration/Data: Under Safety Mode,  {Main Menu} -> {ROBOT} -> {TOOL} -> {Utility} -> {Calibration}
+
+
+## Useful Tips
+* Wire Feed/Retract: Under Teach Mode, Number 9 and Number 6.
+* Digital Output:  {Main Menu} -> {IN/OUT} -> {Universal Out}, use [Page] (or [Shift]+[Page]) button to switch pages, use [INTERLOCK]+[SELECT] to toggle the output
+* Robot Control: Shift+Robot to switch between robots; Coord to change among (joint space, Base frame, tool frame)
+* Job Save/Load: Jobs created on teachpendant need to be saved to EX.MEMORY (USB drive on the back) manually. Same for loading
+* Pulse2Deg: Absolute Angle and Pulse have sign flip for some joints, USE PULSE sign as reference.
+* Alarm Release for Manual Jogging: {OVERRUN&SHOCK SENSOR} and {LIMIT RELEASE}
+* Digital I/O Board: CN306 ~ CN309, refer to diagram in the cabinet
+* Functional Safety Reset: Boot into Maintance Mode, under Safety Mode {FILE} -> {INITIALIZE} -> {Functional Board Safety Reset} 
+
+## MotoPlus Setting
+Motoplus program will run at background after boot up, and it's a `.out` file compiled in VS.
+* 
 
 ## Welder Setting
 Set IP and Gateway of Fronius Welder to communicate with DX200
 * Fronius IP: Deselect DHCP, IP Address: `192.168.1.55`, Standard Gateway: `192.168.1.31`
 * DX200 (Management): Weldcom Options -> ARC DIGITAL I/F FUNC. -> Power Source IP Address: `192.168.1.51`, HTTP POWER SOURCE IP ADDRESS: `192.168.1.55`
+* External Control: Defaults -> Interface -> external (to make DX200 have control over jobs)
+* DX200 (Parameters): AIP107=1 (Fronius control, 0 for robot control, leave it at 0)
 
-Welder Interface could be accessed through browser.
+
+Welder Interface could be accessed through browser at its IP.
 
 
 ## Usage
