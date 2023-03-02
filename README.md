@@ -12,7 +12,7 @@ Controls DX200 with FTP Ethernet functions
 * PC IP: Change computer's IP to manual, under the same subnet as DX200's IP
 * Pulse to Deg: {Main Menu} -> {SETUP} -> {FUNCTION ENABLE}. Set ALL AXES ANGLE DISP Function to VALID. {ROBOT} -> {CURRENT POSTION}: 
 Toggle DISPLAY to Pulse/Absolute Degrees
-* Tool Calibration/Data: Under Safety Mode,  {Main Menu} -> {ROBOT} -> {TOOL} -> {Utility} -> {Calibration}
+* Tool Calibration/Data: Under Safety Mode,  {Main Menu} -> {ROBOT} -> {TOOL} -> {Utility} -> {Calibration}/{W.GRAV.POS.MEASURE}
 
 
 ## Useful Tips
@@ -24,10 +24,13 @@ Toggle DISPLAY to Pulse/Absolute Degrees
 * Alarm Release for Manual Jogging: {OVERRUN&SHOCK SENSOR} and {LIMIT RELEASE}
 * Digital I/O Board: CN306 ~ CN309, refer to diagram in the cabinet
 * Functional Safety Reset: Boot into Maintance Mode, under Safety Mode {FILE} -> {INITIALIZE} -> {Functional Board Safety Reset} 
+* I/F Panel: Monitor welding parameters (current/voltage, etc.)
+* Register: M368, M362 and M363 for welding parameters
+* Units: {Main Menu} -> {SETUP  } -> {OPERATE COND.}
 
 ## MotoPlus Setting
-Motoplus program will run at background after boot up, and it's a `.out` file compiled in VS.
-* 
+Motoplus program will run at background after boot up, and it's a `.out` file compiled in VS. Boot into Maintenance Mode and load .out file to USB drive. Motoplus could be connected with VGA display, see manual.
+* MotoPlus APL.: LOAD(USER APPLICATION)
 
 ## Welder Setting
 Set IP and Gateway of Fronius Welder to communicate with DX200
