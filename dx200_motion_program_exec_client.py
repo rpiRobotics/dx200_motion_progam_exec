@@ -1094,13 +1094,16 @@ def Touch_test():
     client.MoveJ(q1,1,0)
     client.touchsense(q2, 25 ,20)
     client.ProgEnd()
-    # client.execute_motion_program("AAA.JBI") 
+    # client.execute_motion_program("AAA.JBI")
+
+def tool_change_test():
+    return
 if __name__ == "__main__":
     # send_exe()
     # multimove_positioner()
     # movec_test()
     # read_joint2()
     # zone_test()
-    
+
     # DO_test()
     Touch_test()
