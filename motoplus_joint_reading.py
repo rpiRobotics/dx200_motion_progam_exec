@@ -10,7 +10,7 @@ hz=[]
 while True:
     now=time.time()
     buf = s.recv(1024)
-    data = struct.unpack("<20i",buf)
+    data = struct.unpack("<34i",buf)
     print(np.array(data))
     hz.append(1/(time.time()-now))
     print(np.average(hz))
