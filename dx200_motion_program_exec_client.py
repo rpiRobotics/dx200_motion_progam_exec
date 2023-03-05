@@ -173,7 +173,7 @@ def socket_clear():
 
     hz=[]
     buf = s.recv(1024)
-    data = struct.unpack("<20i",buf)
+    data = struct.unpack("<34i",buf)
     print(data)
 
 # Object class that handles the robot instructions/syntax
@@ -246,7 +246,7 @@ class MotionProgramExecClient(object):
         self.IP=IP
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
-        self.buf_struct = struct.Struct("<20i")
+        self.buf_struct = struct.Struct("<34i")
         self.joint_recording=[]
 
         self.ProgStart()
@@ -1082,9 +1082,10 @@ def zone_test():
 
 def DO_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    client.setDO(4092,1)
-    client.setDOPulse(11,2)
-    client.setDO(4092,0)
+    # client.setDO(4095,1)
+    client.setDOPulse(4095,1)
+    client.setDOPulse(11,5)
+    # client.setDO(4095,0)
     client.ProgEnd()
     client.execute_motion_program("AAA.JBI")  
 
@@ -1095,7 +1096,7 @@ def Touch_test():
     client.MoveJ(q1,1,0)
     client.touchsense(q2, 10 ,20)
     client.ProgEnd()
-    # client.execute_motion_program("AAA.JBI")
+    client.execute_motion_program("AAA.JBI")
 
 def tool_change_test():
     return
@@ -1108,5 +1109,5 @@ if __name__ == "__main__":
     # read_joint2()
     # zone_test()
 
-    # DO_test()
-    Touch_test()
+    DO_test()
+    # Touch_test()
