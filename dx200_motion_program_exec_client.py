@@ -584,6 +584,8 @@ class MotionProgramExecClient(object):
     def setTool(self, tool_id):
         self.addline("// TOOL#(%i)" % tool_id)
 
+    def setWaitTime(self,t):
+        self.addline('TIMER T=%.2f' % t)
 
     def setDOPulse(self,io_var,duration):        
         self.addline('PULSE OT#(%s) T=%.2f' % (io_var, duration))
@@ -1082,10 +1084,13 @@ def zone_test():
 
 def DO_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    # client.setDO(4095,1)
-    client.setDOPulse(4095,1)
-    client.setDOPulse(11,5)
-    # client.setDO(4095,0)
+    client.setDO(4095,1)
+    # client.setDOPulse(4095,1)
+
+    client.setWaitTime(1)
+    # client.setDOPulse(11,5)
+    client.setDO(4095,0)
+
     client.ProgEnd()
     client.execute_motion_program("AAA.JBI")  
 
