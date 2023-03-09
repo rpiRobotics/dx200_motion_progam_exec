@@ -47,5 +47,7 @@ Welder Interface could be accessed through browser at its IP.
 Connect Ethernet from DX200 to computer, and make sure you can ping DX200 from your computer. 
 `python dx200_motion_program_exec_client.py`, the program will generate `.JBI` file, send to DX200 and execute.
 
+Install the package by `python setup.py install`.
+
 ## Motosim
 Refer to [Motosim Manual](Motosim.md).
