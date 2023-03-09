@@ -186,7 +186,6 @@ class MotionProgramExecClient(object):
     
     INCLUDE_SUB_PROGRAMS = True # Generate sub programs
     ACTIVE_FRAME = 9        # Active UFrame Id (register)
-    ACTIVE_TOOL = 9         # Active UTool Id (register)
     SPARE_PR = 95           # Spare Position register for calculations
     
     # PROG specific variables:
@@ -227,10 +226,11 @@ class MotionProgramExecClient(object):
     LAST_CONFDATA = [None, None, None, None] # [pulses(None, Pulses(0), Cartesian) ,  base(or None), tool, config]
 
     
-    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, robot_axes = 6, pulse2deg_2=None):
+    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, tool_num = 10, pulse2deg_2=None):
         if self.DONT_USE_MFRAME:
             self.ACTIVE_FRAME = None
-        self.nAxes = robot_axes
+        self.nAxes = 6
+        self.ACTIVE_TOOL = tool_num
         self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
         self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s_MP.bind(('0.0.0.0',11000))
@@ -415,15 +415,15 @@ class MotionProgramExecClient(object):
                 if 'RB' in self.ROBOT_CHOICE2:   ###if second robot is a robot
                     target_id_2 = self.add_target_joints(target2[1],self.PULSES_X_DEG_2)
                     if 'J' in target2[0]:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d %s" % (target_id_2, "VJ=%.1f" % speed)) 
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2)) 
                     else:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d %s" % (target_id_2, "V=%.1f" % speed)) 
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2)) 
                 else:                           ###if second robot is a positioner
                     target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
                     if 'J' in target2[0]:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed)) 
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2)) 
                     else:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "V=%.1f" % speed))  
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))  
 
             else:
                 self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args))                  
@@ -443,15 +443,15 @@ class MotionProgramExecClient(object):
             if 'RB' in self.ROBOT_CHOICE2:   ###if second robot is a robot
                 target_id_2 = self.add_target_joints(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d %s" % (target_id_2, "VJ=%.1f" % speed))                        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2))                        
                 else:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d %s" % (target_id_2, "V=%.1f" % speed))        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2))        
             else:                           ###if second robot is a positioner
                 target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "VJ=%.1f" % speed))                        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))                        
                 else:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d %s" % (target_id_2, "V=%.1f" % speed))        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))        
 
         else:
             self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args))        
@@ -477,15 +477,15 @@ class MotionProgramExecClient(object):
                 target_id3_2 = self.add_target_joints(target2[3],self.PULSES_X_DEG_2)
 
                 if 'J' in target2[0]:
-                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d %s" % (target_id1_2, "VJ=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d %s" % (target_id2_2, "VJ=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d %s" % (target_id3_2, "VJ=%.1f" % speed))
+                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d" % (target_id1_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d" % (target_id2_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d" % (target_id3_2))
 
                 else:
                     
-                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d %s" % (target_id1_2, "V=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d %s" % (target_id2_2, "V=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d %s" % (target_id3_2, "V=%.1f" % speed))
+                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d" % (target_id1_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d" % (target_id2_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" C%05d" % (target_id3_2))
 
             else:
                 target_id1_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
@@ -493,15 +493,15 @@ class MotionProgramExecClient(object):
                 target_id3_2 = self.add_target_joints2(target2[3],self.PULSES_X_DEG_2)
 
                 if 'J' in target2[0]:
-                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d %s" % (target_id1_2, "VJ=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d %s" % (target_id2_2, "VJ=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d %s" % (target_id3_2, "VJ=%.1f" % speed))
+                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d" % (target_id1_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d" % (target_id2_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d" % (target_id3_2))
 
                 else:
                     
-                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d %s" % (target_id1_2, "V=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d %s" % (target_id2_2, "V=%.1f" % speed))
-                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d %s" % (target_id3_2, "V=%.1f" % speed))
+                    self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d" % (target_id1_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d" % (target_id2_2))
+                    self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args) + ' +' + target2[0]+" EC%05d" % (target_id3_2))
 
         else:
                 
