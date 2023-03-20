@@ -264,7 +264,6 @@ class MotionProgramExecClient(object):
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
         self.buf_struct = struct.Struct("<34i")
         self.joint_recording=[]
-        self.state_flag=0
 
         self.ProgStart()
         
@@ -923,7 +922,6 @@ class MotionProgramExecClient(object):
                     with self._lock:
                         # self.joint_angle=np.radians(np.divide(np.array(data[2:16]),self.p2d_all))
                         self.joint_angle=np.radians(np.divide(np.array(data[20:34]),self.reading_conversion))
-                        self.state_flag=data[16]
                         # print(self.joint_angle)
                         timestamp=data[0]+data[1]*1e-9
                         if self._recording:
@@ -988,16 +986,13 @@ class MotionProgramExecClient(object):
             same_count=10
             while True:
                 time.sleep(0.001)
-                if self.state_flag & STATUS_RUNNING == 0:
-                    break       ###quit running loop if servo motor off
-                    
-                # if len(self.joint_recording)>10:
-                #     if np.array_equal(self.joint_recording[-1][1:],self.joint_recording[-7][1:]):
-                #         with self._lock:
-                #             [d1,d2]=self.statusMH()
-                #             d1 = [int(i) for i in bin(int(d1))[2:]]
-                #             if not d1[4]:       #if robot not running
-                #                 break
+                if len(self.joint_recording)>10:
+                    if np.array_equal(self.joint_recording[-1][1:],self.joint_recording[-7][1:]):
+                        with self._lock:
+                            [d1,d2]=self.statusMH()
+                            d1 = [int(i) for i in bin(int(d1))[2:]]
+                            if not d1[4]:       #if robot not running
+                                break
 
 
             ###enable printing
