@@ -1008,7 +1008,9 @@ class MotionProgramExecClient(object):
 
             return joint_recording[:,0], joint_recording[:,1:]
         finally:
-            self.StopStreaming()        
+            self.StopStreaming()
+            ###clean INFORM code
+            self.ProgStart()
         
 
 
