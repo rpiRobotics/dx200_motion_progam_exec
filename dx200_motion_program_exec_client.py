@@ -263,7 +263,7 @@ class MotionProgramExecClient(object):
         self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
         self.buf_struct = struct.Struct("<34i")
-        self.joint_recording=[]
+        self.recording=[]
         self.state_flag=0
 
         self.ProgStart()
@@ -927,9 +927,9 @@ class MotionProgramExecClient(object):
                         # print(self.joint_angle)
                         timestamp=data[0]+data[1]*1e-9
                         if self._recording:
-                            self.joint_recording.append(np.array([timestamp]+self.joint_angle.tolist()))
+                            self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[data[18],data[19]]))
                         else:
-                            self.joint_recording=[]
+                            self.recording=[]
             except:
                 traceback.print_exc()
 
@@ -1003,11 +1003,11 @@ class MotionProgramExecClient(object):
 
             ###enable printing
             # enablePrint()
-            joint_recording=np.array(copy.deepcopy(self.joint_recording))
+            recording=np.array(copy.deepcopy(self.recording))
             self._recording=False
             self.servoMH(False) #Turn the Servos of
 
-            return joint_recording[:,0], joint_recording[:,1:]
+            return recording[:,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
         finally:
             self.StopStreaming()
             ###clean INFORM code
@@ -1019,13 +1019,16 @@ class MotionProgramExecClient(object):
 def main():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
-    client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
+    # client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
+    client.setWaitTime(1)
     client.MoveJ([0,0,0,0,0,0],10,0)
-    client.MoveJ([0,-1.23097,-15.1604,0,13.9294,0],10,0)
-    client.MoveJ([0,-27.1205,-36.7057,0,9.58517,0],10,0)
-    client.ProgEnd()
+    # client.setWaitTime(1)
+    # client.MoveJ([0,-1.23097,-15.1604,0,13.9294,0],10,0)
+    # client.MoveJ([0,-27.1205,-36.7057,0,9.58517,0],10,0)
 
-    print(client.execute_motion_program("AAA.JBI"))
+    timestamp,joint_recording,job_line,job_step=client.execute_motion_program("AAA.JBI")
+    print('job_line ', job_line)
+    print('job_step ',job_step)
 
 def movec_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
@@ -1036,7 +1039,7 @@ def movec_test():
     client.MoveJ(q1,1,0)
     client.MoveC(q1, q2, q3, 10,0)
 
-    client.ProgEnd()
+    
 
     print(client.execute_motion_program("AAA.JBI"))
 
@@ -1056,7 +1059,7 @@ def multimove_positioner():           ###multimove with robot+ positioner
     client.MoveL(q2, 10,0,target2=target2J_2)
     # client.MoveL(q3, 10,0,target2=target2J_3)
 
-    client.ProgEnd()
+    
     print(client.execute_motion_program("AAA.JBI"))
 
 def multimove_robots():  ####multimove with 2 robots
@@ -1074,7 +1077,7 @@ def multimove_robots():  ####multimove with 2 robots
     client.MoveL(q2, 10,0,target2=target2J_2)
     client.MoveL(q3, 10,0,target2=target2J_3)
 
-    client.ProgEnd()
+    
     print(client.execute_motion_program("AAA.JBI"))
 
 def send_exe():
@@ -1093,7 +1096,7 @@ def read_joint2():
     client.MoveJ(np.zeros(6), 1,0)
     client.MoveJ(5*np.ones(6), 1,0)
     client.MoveJ(np.zeros(6), 1,0)
-    client.ProgEnd()
+    
     timestamp,joint_recording=client.execute_motion_program("AAA.JBI")  
     np.savetxt('joint_recording.csv',np.hstack((timestamp.reshape(-1, 1),joint_recording)),delimiter=',')
 
@@ -1105,7 +1108,7 @@ def zone_test():
     client.MoveJ(q1,1,0)
     client.MoveL(q2, 10)
 
-    client.ProgEnd()
+    
 
 def DO_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
@@ -1116,7 +1119,6 @@ def DO_test():
     # client.setDOPulse(11,5)
     client.setDO(4095,0)
 
-    client.ProgEnd()
     client.execute_motion_program("AAA.JBI")  
 
 def Touch_test():
@@ -1125,7 +1127,7 @@ def Touch_test():
     q2=np.array([-32.3264,36.432,9.0947,-15.1946,-46.0499,41.2464])
     client.MoveJ(q1,1,0)
     client.touchsense(q2, 10 ,20)
-    client.ProgEnd()
+    
     client.execute_motion_program("AAA.JBI")
 
 def tool_change_test():
@@ -1133,10 +1135,11 @@ def tool_change_test():
     client.execute_motion_program("AAA.JBI") 
 
 if __name__ == "__main__":
+    main()
     # send_exe()
     # multimove_positioner()
     # movec_test()
-    read_joint2()
+    # read_joint2()
     # zone_test()
 
     # DO_test()
