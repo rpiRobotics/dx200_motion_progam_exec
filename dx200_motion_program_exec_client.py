@@ -985,10 +985,10 @@ class MotionProgramExecClient(object):
             ###block printing
             # blockPrint()
             last_reading=np.zeros(14)
-            same_count=10
+            start_time=time.time()
             while True:
                 time.sleep(0.001)
-                if self.state_flag & STATUS_RUNNING == 0:
+                if self.state_flag & STATUS_RUNNING == 0 and time.time()-start_time>1.:
                     break       ###quit running loop if servo motor off
                     
                 # if len(self.joint_recording)>10:
