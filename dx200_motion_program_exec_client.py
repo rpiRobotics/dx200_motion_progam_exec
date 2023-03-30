@@ -971,6 +971,7 @@ class MotionProgramExecClient(object):
 
     ##############################EXECUTION############################################
     def execute_motion_program(self, filename="AAA.JBI"):
+        self.ProgEnd()
         self.StartStreaming()
         try:
             # self.connectMH() #Connect to Controller
