@@ -418,7 +418,7 @@ class MotionProgramExecClient(object):
         """Add a joint movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         
-        if zone:
+        if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
         else:
             zone_args=''
@@ -452,7 +452,7 @@ class MotionProgramExecClient(object):
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         target_id = self.add_target_joints(joints)
 
-        if zone:
+        if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
         else:
             zone_args=''
@@ -478,7 +478,7 @@ class MotionProgramExecClient(object):
         """Add a circular movement"""
         self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
 
-        if zone:
+        if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
         else:
             zone_args=''
