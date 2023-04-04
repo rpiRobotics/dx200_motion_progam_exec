@@ -196,20 +196,9 @@ class MotionProgramExecClient(object):
     """Robot post object defined for Motoman robots"""
     PROG_EXT = 'JBI'             # set the program extension
     MAX_LINES_X_PROG = 2000      # maximum number of lines per program. It will then generate multiple "pages (files)". This can be overriden by RoboDK settings.    
-    DONT_USE_MFRAME = True       # Set to false to use MFRAME for setting reference frames automatically within the program
-    DONT_USE_SETTOOL = True      # Set to false to use SETTOOL for setting the tool within the program
     
     INCLUDE_SUB_PROGRAMS = True # Generate sub programs
-    ACTIVE_FRAME = 9        # Active UFrame Id (register)
-    SPARE_PR = 95           # Spare Position register for calculations
     
-    # PROG specific variables:
-    LINE_COUNT = 0      # Count the number of instructions (limited by MAX_LINES_X_PROG)
-    P_COUNT = 0         # Count the number of P targets in one file
-    C_COUNT = 0         # Count the number of P targets in one file
-    EC_COUNT = 0
-    nProgs = 0          # Count the number of programs and sub programs
-    LBL_ID_COUNT = 0    # Number of labels used
     
     # other variables
     PROG_FILES = [] # List of Program files to be uploaded through FTP
@@ -223,27 +212,10 @@ class MotionProgramExecClient(object):
     nPages = 0           # Count the number of pages
     PROG_NAMES_MAIN = [] # List of programs called by a main program due to splitting
     
-    PROG = []     # Save the program lines
-    PROG_TARGETS = []  # Save the program lines (targets section)
-    PROG_TARGETS2 = []
     LOG = '' # Save a log
     
-    nAxes = 6 # Important: This is usually provided by RoboDK automatically. Otherwise, override the __init__ procedure. 
-
-    HAS_TRACK = False
-    HAS_TURNTABLE = False
-    
-    # Specific to ARC welding applications
-    SPEED_BACKUP = None
-    LAST_POSE = None
-    POSE_FRAME = np.eye(4)
-    POSE_FRAME = np.eye(4)
-    LAST_CONFDATA = [None, None, None, None] # [pulses(None, Pulses(0), Cartesian) ,  base(or None), tool, config]
-
-    
-    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, tool_num = 10, pulse2deg_2=None):
-        if self.DONT_USE_MFRAME:
-            self.ACTIVE_FRAME = None
+    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, tool_num = 12, pulse2deg_2=None):
+        self.ACTIVE_FRAME = None
         self.nAxes = 6
         self.ACTIVE_TOOL = tool_num
         self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
@@ -266,6 +238,8 @@ class MotionProgramExecClient(object):
         self.recording=[]
         self.state_flag=0
 
+
+        self.POSE_FRAME = np.eye(4)
         self.ProgStart()
         
                 
@@ -274,6 +248,14 @@ class MotionProgramExecClient(object):
         self.PROG=[]
         self.PROG_TARGETS=[]
         self.PROG_TARGETS2=[]
+        # PROG specific variables:
+        self.LINE_COUNT = 0      # Count the number of instructions (limited by MAX_LINES_X_PROG)
+        self.P_COUNT = 0         # Count the number of P targets in one file
+        self.C_COUNT = 0         # Count the number of P targets in one file
+        self.EC_COUNT = 0
+        self.nProgs = 0          # Count the number of programs and sub programs
+        self.LBL_ID_COUNT = 0    # Number of labels used
+        self.LAST_CONFDATA = [None, None, None, None]
         progname = get_safe_name(progname)
         progname_i = progname
         if new_page:
@@ -340,8 +322,6 @@ class MotionProgramExecClient(object):
             header_ins += '///GROUP1 '+self.ROBOT_CHOICE + '\n'
 
         header_ins += 'NOP'
-        #if self.HAS_TURNTABLE:
-        #    header = header + '/APPL' + '\n'
 
         self.PROG.insert(0, header_ins)
         self.PROG.append('END')
@@ -547,56 +527,6 @@ class MotionProgramExecClient(object):
 
         target_id = self.add_target_joints(joints)
         self.addline("MOVL C%05d V=%.1f SRCH RIN#(3)=ON DIS=%.1f" % (target_id, speed, distance))
-
-    def setFrame(self, pose, frame_id, frame_name):
-        """Change the robot reference frame"""
-        xyzwpr = pose_2_xyzrpw(pose)
-        if self.DONT_USE_MFRAME:
-            self.ACTIVE_FRAME = None
-            self.POSE_FRAME = pose
-            self.RunMessage('Using %s (targets wrt base):' % (str(frame_name)), True)
-            self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
-        else:
-            self.POSE_FRAME = eye(4)
-            if frame_id is None or frame_id < 0:
-                self.RunMessage('Setting Frame %i (%s):' % (self.ACTIVE_FRAME, str(frame_name)), True)            
-                decimals = [1000,1000,1000,100,100,100]
-                frame_calc = [eye(4), transl(200,0,0), transl(0,200,0)]
-                for m in range(3):
-                    xyzwpr_pm = pose_2_xyzrpw(pose*frame_calc[m])
-                    for i in range(6):
-                        self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR+m, i+1, round(xyzwpr_pm[i]*decimals[i])))
-                    for i in range(6,self.nAxes):
-                        self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR+m, i+1, 0))
-                    
-                self.addline("MFRAME UF#(%i) P%05d P%05d P%05d" % (self.ACTIVE_FRAME, self.SPARE_PR, self.SPARE_PR+1, self.SPARE_PR+2))
-                    
-            else:
-                self.ACTIVE_FRAME = frame_id
-                self.RunMessage('Frame %i (%s) should be close to:' % (self.ACTIVE_FRAME, str(frame_name)), True)
-                self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
-        
-    # def setTool(self, pose, tool_id, tool_name):
-    #     """Change the robot TCP"""
-    #     xyzwpr = pose_2_xyzrpw(pose)
-    #     if tool_id is None or tool_id < 0:
-    #         if self.DONT_USE_SETTOOL:
-    #             self.RunMessage('Tool %s should be close to:' % (str(tool_name)), True)
-    #             self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
-    #         else:
-    #             self.RunMessage('Setting Tool %i (%s):' % (self.ACTIVE_TOOL, str(tool_name)), True)            
-    #             decimals = [1000,1000,1000,100,100,100]
-    #             for i in range(6):
-    #                 self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR, i+1, round(xyzwpr[i]*decimals[i])))
-    #             for i in range(6,self.nAxes):
-    #                 self.addline("SETE P%05d (%i) %i" % (self.SPARE_PR, i+1, 0))
-                    
-    #             self.addline("SETTOOL TL#(%i) P%05d" % (self.ACTIVE_TOOL, self.SPARE_PR))
-                
-    #     else:
-    #         self.ACTIVE_TOOL = tool_id
-    #         self.RunMessage('Tool %i (%s) should be close to:' % (self.ACTIVE_TOOL, str(tool_name)), True)
-    #         self.RunMessage('%.1f,%.1f,%.1f,%.1f,%.1f,%.1f' % (xyzwpr[0], xyzwpr[1], xyzwpr[2], xyzwpr[3], xyzwpr[4], xyzwpr[5]), True)
 
     def setTool(self, tool_id):
         self.addline("// TOOL#(%i)" % tool_id)
@@ -1019,7 +949,6 @@ class MotionProgramExecClient(object):
 def main():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
-    # client.setFrame(Pose([0,0,0,0,0,0]),-1,r"""Motoman MA2010 Base""")
     client.setWaitTime(1)
     client.MoveJ([0,0,0,0,0,0],10,0)
     # client.setWaitTime(1)
@@ -1155,24 +1084,27 @@ def header_debug():
 def header_debug_real():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
-    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
-    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
+    v=400
 
-    client.MoveJ(q1,1,0)
+    q1=np.degrees([0.415960992, -0.007691068,    -0.077033396,    0.166405859, -1.152634465,    -0.45682964])
+    q2=np.degrees([-0.7640303823690084,0.5200611689900151,0.004431088515586268,-1.376309377453568,-1.89942038803517,0.5479765692688374])
+
+    client.MoveJ(q1,5)
     client.execute_motion_program()
 
-    client.MoveL(q2, 10)
+    client.MoveL(q2, 200)
     timestamp1, joint_recording1, _, _ = client.execute_motion_program()
 
-    client.MoveJ(q1,1,0)
+    client.MoveJ(q1,5)
     client.execute_motion_program()
 
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
-    client.MoveL(q2, 10)
+    client.MoveL(q2, 200)
     timestamp2, joint_recording2, _, _ = client.execute_motion_program()
 
-
+    print(timestamp1[-1]-timestamp1[0])
+    print(timestamp2[-1]-timestamp2[0])
 
 if __name__ == "__main__":
     # main()
@@ -1183,4 +1115,4 @@ if __name__ == "__main__":
     # zone_test()
     # DO_test()
     # Touch_test()
-    header_debug_real()
+    header_debug()
