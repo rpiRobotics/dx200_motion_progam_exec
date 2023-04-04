@@ -1130,17 +1130,57 @@ def Touch_test():
     
     client.execute_motion_program("AAA.JBI")
 
-def tool_change_test():
-    return
-    client.execute_motion_program("AAA.JBI") 
+def header_debug():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+
+    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
+    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
+
+    client.MoveJ(q1,1,0)
+    client.ProgEnd()
+
+    client.ProgStart()
+    client.MoveL(q2, 10)
+    client.ProgEnd()
+
+    client.ProgStart()
+    client.MoveJ(q1,1,0)
+    client.ProgEnd()
+
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+
+    client.MoveL(q2, 10)
+    client.ProgEnd()
+
+def header_debug_real():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+
+    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
+    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
+
+    client.MoveJ(q1,1,0)
+    client.execute_motion_program()
+
+    client.MoveL(q2, 10)
+    timestamp1, joint_recording1, _, _ = client.execute_motion_program()
+
+    client.MoveJ(q1,1,0)
+    client.execute_motion_program()
+
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+
+    client.MoveL(q2, 10)
+    timestamp2, joint_recording2, _, _ = client.execute_motion_program()
+
+
 
 if __name__ == "__main__":
-    main()
+    # main()
     # send_exe()
     # multimove_positioner()
     # movec_test()
     # read_joint2()
     # zone_test()
-
     # DO_test()
     # Touch_test()
+    header_debug_real()
