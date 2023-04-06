@@ -504,8 +504,7 @@ class MotionProgramExecClient(object):
                 
             self.addline("MOVC C%05d %s%s" % (target_id1, "V=%.1f" % speed, zone_args))
             self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args))
-            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args))
-
+            self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args+' FPT'))
 
     def SetArc(self,on,cond_num=None):
         if cond_num:
