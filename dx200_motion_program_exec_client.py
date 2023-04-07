@@ -852,7 +852,6 @@ class MotionProgramExecClient(object):
                 res, data = self.receive_from_robot(0.01)
                 if res:
                     with self._lock:
-                        # self.joint_angle=np.radians(np.divide(np.array(data[2:16]),self.p2d_all))
                         self.joint_angle=np.radians(np.divide(np.array(data[20:34]),self.reading_conversion))
                         self.state_flag=data[16]
                         # print(self.joint_angle)

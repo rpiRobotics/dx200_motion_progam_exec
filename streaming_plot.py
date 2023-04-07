@@ -19,8 +19,8 @@ while True:
         data = struct.unpack("<34i",buf)
         timestamp.append(data[0])
         joint_angle1.append(data[2:8])
-        joint_angle2.append(data[20:26]*reading_conversion[:6]*10000)
-        # joint_angle2.append(data[20:26])
+        # joint_angle2.append(data[20:26]*reading_conversion[:6]/10000)
+        joint_angle2.append(data[20:26])
     except:
         break
 joint_angle1=np.array(joint_angle1)
