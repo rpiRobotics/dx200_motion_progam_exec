@@ -225,8 +225,10 @@ class MotionProgramExecClient(object):
         self._recording=False
 
         #hardcoded p2d for all robots in series
-        self.reading_conversion=10000*np.ones(14)
-        self.reading_conversion[1::2]=-self.reading_conversion[1::2]
+        # self.reading_conversion=10000*np.ones(14)
+        # self.reading_conversion[1::2]=-self.reading_conversion[1::2]
+
+        self.reading_conversion=np.array([1341.380023,1907.674052,1592.888923,1022.862207,980.2392898,454.754161,1435.350459,1300.317471,1422.222174,969.9555508,980.2392898,454.754161,1994.296925,1376.711214])
 
         self.ROBOT_CHOICE = ROBOT_CHOICE
         self.PULSES_X_DEG = pulse2deg
