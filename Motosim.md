@@ -11,7 +11,7 @@ Plug the USB license key to server, and make sure the Motosim computer is on the
 On Motosim computer, navigate to <http://localhost:1947/_int_/ACC_help_index.html> and go to {Configuration} -> {Access to Remote License Managers}
 Enable {Allow Access to Remote Licenses}.
 Enable {Aggressive Search for Remote Licenses}.
-Enter the IP address or hostname into the {Remote License Search Parameters} box.
+Enter the IP address or hostname into the {Remote License Search Parameters} box (RPI license server IP is `128.113.26.60`).
 Click ‘Submit’.
 
 
