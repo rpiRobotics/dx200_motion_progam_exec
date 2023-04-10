@@ -13,7 +13,7 @@ Controls DX200 with FTP Ethernet functions
 * Pulse to Deg: {Main Menu} -> {SETUP} -> {FUNCTION ENABLE}. Set ALL AXES ANGLE DISP Function to VALID. {ROBOT} -> {CURRENT POSTION}: 
 Toggle DISPLAY to Pulse/Absolute Degrees
 * Tool Calibration/Data: Under Safety Mode,  {Main Menu} -> {ROBOT} -> {TOOL} -> {Utility} -> {Calibration}/{W.GRAV.POS.MEASURE}
-
+* Base Pose Calibration: {Main Menu} -> {ROBOT CALIB} -> top bar {DISPLAY} -> {COORDINATE DATA}
 
 ## Useful Tips
 * Wire Feed/Retract: Under Teach Mode, Number 9 and Number 6.
