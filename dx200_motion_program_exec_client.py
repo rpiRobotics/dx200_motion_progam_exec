@@ -30,63 +30,6 @@ def DirExists(folder):
     """Returns true if the folder exists"""
     return os.path.isdir(folder)
 
-def get_safe_name(progname, max_chars = 6):
-    """Get a safe program name"""
-    # Remove special characters
-    for c in r'-[]/\;,><&*:%=+@!#^()|?^':
-        progname = progname.replace(c,'')
-    # Set a program name by default:
-    if len(progname) <= 0:
-        progname = 'Program'
-    # Force the program to start with a letter (not a number)
-    if progname[0].isdigit():
-        progname = 'P' + progname
-    # Set the maximum size of a program (number of characters)
-    if len(progname) > max_chars:
-        progname = progname[:max_chars]
-    return progname
-
-def pose_2_xyzrpw(H):
-    """Calculates the equivalent position (mm) and Euler angles (deg) as an [x,y,z,r,p,w] array, given a pose.
-    It returns the values that correspond to the following operation:
-    transl(x,y,z)*rotz(w*pi/180)*roty(p*pi/180)*rotx(r*pi/180)
-
-    :param H: pose
-    :type H: :class:`.Mat`
-    :return: [x,y,z,w,p,r] in mm and deg
-
-    .. seealso:: :class:`.Mat`, :func:`~robodk.TxyzRxyz_2_Pose`, :func:`~robodk.Pose_2_TxyzRxyz`, :func:`~robodk.Pose_2_ABB`, :func:`~robodk.Pose_2_Adept`, :func:`~robodk.Pose_2_Comau`, :func:`~robodk.Pose_2_Fanuc`, :func:`~robodk.Pose_2_KUKA`, :func:`~robodk.pose_2_xyzrpw`, :func:`~robodk.Pose_2_Nachi`, :func:`~robodk.Pose_2_Staubli`, :func:`~robodk.Pose_2_UR`, :func:`~robodk.quaternion_2_pose`
-    """
-    x = H[0, 3]
-    y = H[1, 3]
-    z = H[2, 3]
-    if (H[2, 0] > (1.0 - 1e-10)):
-        p = -np.pi / 2
-        r = 0
-        w = np.arctan2(-H[1, 2], H[1, 1])
-    elif H[2, 0] < -1.0 + 1e-10:
-        p = np.pi / 2
-        r = 0
-        w = np.arctan2(H[1, 2], H[1, 1])
-    else:
-        p = np.arctan2(-H[2, 0], np.sqrt(H[0, 0] * H[0, 0] + H[1, 0] * H[1, 0]))
-        w = np.arctan2(H[1, 0], H[0, 0])
-        r = np.arctan2(H[2, 1], H[2, 2])
-    return [x, y, z, r * 180 / np.pi, p * 180 / np.pi, w * 180 / np.pi]
-
-def Pose(xyzrpw):
-    [x,y,z,r,p,w] = xyzrpw
-    a = r*np.pi/180
-    b = p*np.pi/180
-    c = w*np.pi/180
-    ca = np.cos(a)
-    sa = np.sin(a)
-    cb = np.cos(b)
-    sb = np.sin(b)
-    cc = np.cos(c)
-    sc = np.sin(c)
-    return np.array([[cb*ca, ca*sc*sb - cc*sa, sc*sa + cc*ca*sb, x],[cb*sa, cc*ca + sc*sb*sa, cc*sb*sa - ca*sc, y],[-sb, cb*sc, cc*cb, z],[0,0,0,1]])
-
 def getFileDir(filepath):
     """Returns the directory of a file path"""
     return os.path.dirname(filepath)
@@ -182,19 +125,9 @@ def UploadFTP(program, robot_ip, remote_path, ftp_user, ftp_pass, pause_sec=2):
     print("POPUP: Done")
     sys.stdout.flush()
 
-def socket_clear():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(('0.0.0.0',11000))
-
-    hz=[]
-    buf = s.recv(1024)
-    data = struct.unpack("<34i",buf)
-    print(data)
-
 # Object class that handles the robot instructions/syntax
 class MotionProgramExecClient(object):
     """Robot post object defined for Motoman robots"""
-    PROG_EXT = 'JBI'             # set the program extension
     MAX_LINES_X_PROG = 2000      # maximum number of lines per program. It will then generate multiple "pages (files)". This can be overriden by RoboDK settings.    
     
     INCLUDE_SUB_PROGRAMS = True # Generate sub programs
@@ -211,12 +144,8 @@ class MotionProgramExecClient(object):
     
     nPages = 0           # Count the number of pages
     PROG_NAMES_MAIN = [] # List of programs called by a main program due to splitting
-    
-    LOG = '' # Save a log
-    
+        
     def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, tool_num = 12, pulse2deg_2=None):
-        self.ACTIVE_FRAME = None
-        self.nAxes = 6
         self.ACTIVE_TOOL = tool_num
         self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
         self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -258,7 +187,6 @@ class MotionProgramExecClient(object):
         self.nProgs = 0          # Count the number of programs and sub programs
         self.LBL_ID_COUNT = 0    # Number of labels used
         self.LAST_CONFDATA = [None, None, None, None]
-        progname = get_safe_name(progname)
         progname_i = progname
         if new_page:
             #nPages = len(self.PROG_LIST)
@@ -289,7 +217,6 @@ class MotionProgramExecClient(object):
         self.ProgSave(".","AAA",False)
         
     def ProgFinish(self, progname, new_page = False):
-        progname = get_safe_name(progname)
         if not new_page:
             # Reset page count
             self.nPages = 0
@@ -314,8 +241,6 @@ class MotionProgramExecClient(object):
 
         if self.ROBOT_CHOICE2:
             header_ins += '///ATTR SC,RW' + '\n'
-            if self.ACTIVE_FRAME is not None:
-                header_ins += '///FRAME USER %i' % self.ACTIVE_FRAME + '\n'    
 
             header_ins += '///GROUP1 '+self.ROBOT_CHOICE + '\n'
             header_ins += '///GROUP2 '+self.ROBOT_CHOICE2 + '\n'    
@@ -344,11 +269,11 @@ class MotionProgramExecClient(object):
         self.LAST_CONFDATA = [None, None, None, None]
         self.LBL_ID_COUNT = 0
         
-    def progsave(self, folder, progname, ask_user = False, show_result = False):
+    def progsave(self, folder, progname):
         if not folder.endswith('/'):
             folder = folder + '/'
-        progname = progname + '.' + self.PROG_EXT
-        if ask_user or not DirExists(folder):
+        progname = progname + '.JBI'
+        if not DirExists(folder):
             filesave = getSaveFile(folder, progname, 'Save program as...')
             if filesave is not None:
                 filesave = filesave.name
@@ -363,32 +288,10 @@ class MotionProgramExecClient(object):
             fid.write('\n')
         fid.close()
         self.PROG_FILES.append(filesave)
-        
-        # open file with default application
-        if show_result:
-            if type(show_result) is str:
-                # Open file with provided application
-                import subprocess
-                p = subprocess.Popen([show_result, filesave])
-            elif type(show_result) is list:
-                import subprocess
-                p = subprocess.Popen(show_result + [filesave])   
-            else:
-                # open file with default application
-                import os
-                os.startfile(filesave)
-            #if len(self.LOG) > 0:
-            #    mbox('Program generation LOG:\n\n' + self.LOG)
-
             
-            
-    def ProgSave(self, folder, progname, ask_user = False, show_result = False):
-        progname = get_safe_name(progname)
+    def ProgSave(self, folder, progname):
         self.PROG = self.PROG_LIST.pop()
-        self.progsave(folder, progname, ask_user, show_result)
-
-        if show_result and len(self.LOG) > 0:
-            mbox('Program generation LOG:\n\n' + self.LOG)
+        self.progsave(folder, progname)
         
     def ProgSendRobot(self, remote_path, ftp_user, ftp_pass):
         """Send a program to the robot using the provided parameters. This method is executed right after ProgSave if we selected the option "Send Program to Robot".
@@ -569,20 +472,7 @@ class MotionProgramExecClient(object):
         else:
             #self.LBL_ID_COUNT = self.LBL_ID_COUNT + 1
             self.addline('WAIT %s=%s T=%.2f' % (io_var, io_value, timeout_ms*0.001))
-       
-            
-    def RunMessage(self, message, iscomment = False):
-        """Add a joint movement"""
-        if iscomment:
-            for i in range(0,len(message), 29):
-                i2 = min(i + 29, len(message))
-                self.addline("'%s" % message[i:i2])
-                
-        else:
-            for i in range(0,len(message), 25):
-                i2 = min(i + 25, len(message))
-                self.addline('MSG "%s"' % message[i:i2])
-        
+
 # ------------------ private ----------------------
     def page_size_control(self):
         if self.LINE_COUNT >= self.MAX_LINES_X_PROG:
@@ -721,20 +611,6 @@ class MotionProgramExecClient(object):
         data2_arr = [int(data2_str[0])/self.PULSES_X_DEG[0],int(data2_str[1])/self.PULSES_X_DEG[1],int(data2_str[2])/self.PULSES_X_DEG[2],int(data2_str[3])/self.PULSES_X_DEG[3],int(data2_str[4])/self.PULSES_X_DEG[4],int(data2_str[5])/self.PULSES_X_DEG[5]]
         return data2_arr
 
-
-
-    def getCoordinatesMH(self,coordinateSystem = 0): #Somehow our controller raises an internal error
-        """Read the current Position in reference to a selectable coordinate system, currently Broken on DX Controllers!
-
-        Args:
-            coordinateSystem (int, optional): The refereced coordinate System. 0 = Base, 1 = Robot, 2-64 = User. Defaults to 0.
-
-        Returns:
-            list: List with the current Positional Values
-        """
-        d1, d2 = self.__sendCMD("RPOSC","0,0\r")
-        return d2.decode("utf-8").replace("\r","").split(",")
-
     def servoMH(self, state = True): #Enable/Disable Servos
         """Turn on/off the Servo motors
 
@@ -760,35 +636,6 @@ class MotionProgramExecClient(object):
         cmd = f"{speed},{int(S*self.PULSES_X_DEG[0])},{int(L*self.PULSES_X_DEG[1])},{int(U*self.PULSES_X_DEG[2])},{int(R*self.PULSES_X_DEG[3])},{int(B*self.PULSES_X_DEG[4])},{int(T*self.PULSES_X_DEG[5])},0,0,0,0,0,0,0\r" #Convert encoder pulses
         self.__sendCMD("PMOVJ",cmd)
 
-
-    def WriteVariableMH(self,type,number,value):
-        """Write a Variable on the controller
-
-        Args:
-            type (int): Type of the Variable | 0 = Byte, 1 = Integer, 2 = Double, 3 = Real, 7 = String. Other Values raise an exception
-            number (int): variable numer
-            value (byte/int/float/string): Variable Value
-
-        Raises:
-            Exception: Exception if the type is not allowed
-        """
-        cmd = f"{type},{number},{value}\r"
-        if type in [0,1,2,3,7]: self.__sendCMD("LOADV",cmd) #Check if Variable Type is allowed
-        else: raise Exception("Variable Type not supported!")
-
-    def ReadVariableMH(self,type,number):
-        """Read a variable from the controller
-
-        Args:
-            type (int): Type of the Variable
-            number (int): Variable Number
-
-        Returns:
-            string: Variable Value
-        """
-        d1,d2 = self.__sendCMD("SAVEV",f"{type},{number}\r")
-        return d2.decode("utf-8").replace("\r","")
-
     def statusMH(self):
         """Read the Status bytes from the Robot
 
@@ -798,15 +645,6 @@ class MotionProgramExecClient(object):
         d1,d2 = self.__sendCMD("RSTATS","")
         status = d2.decode("utf-8").replace("\r","").split(",")
         return status
-
-    def readCurrJobMH(self):
-        """Read the current Job Name
-
-        Returns:
-            string: Current Job Name
-        """
-        d1,d2 = self.__sendCMD("RJSEQ","")
-        return d2
     
     def startJobMH(self,job):
         """Start a Job by its name
@@ -820,31 +658,6 @@ class MotionProgramExecClient(object):
         """
         d1,d2 = self.__sendCMD("START",f"{job}\r")
         return d1, d2
-
-    def readGroup(self):
-        """READ current work group
-
-        Returns:
-            string d1: Robot control group information
-            string d2: Station control group information
-        """
-        d1,d2 = self.__sendCMD("RGROUP","")
-
-        data2_str = d2.decode("utf-8").replace("\r","").split(",")
-        return [eval(i) for i in data2_str]
-
-    def setGroup(self,robot,station=1,task=0):
-        """SET current work group
-        robot: 1 or 2: 2010 or 1440
-        station: 0 or 1: station or not
-        task: default at 0
-        """
-
-        d1,d2=self.__sendCMD("RPOSC",b"3,1,0\r")
-        # if robot==1:
-        #     d1,d2=self.__sendCMD("RPOSC",b"1,1,0\r")
-        # else:
-        #     d1,d2=self.__sendCMD("RPOSC",b"2,1,0\r")
 
     def threadfunc(self):
         while(self._streaming):
