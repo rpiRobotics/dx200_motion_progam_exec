@@ -214,7 +214,7 @@ class MotionProgramExecClient(object):
 
     def ProgEnd(self):
         self.ProgFinish(r"""AAA""")
-        self.ProgSave(".","AAA",False)
+        self.ProgSave(".","AAA")
         
     def ProgFinish(self, progname, new_page = False):
         if not new_page:
