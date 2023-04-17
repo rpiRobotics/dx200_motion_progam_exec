@@ -839,7 +839,7 @@ def read_joint2():
     client.MoveJ(5*np.ones(6), 1,0)
     client.MoveJ(np.zeros(6), 1,0)
     
-    timestamp,joint_recording=client.execute_motion_program("AAA.JBI")  
+    timestamp,joint_recording,job_line,_=client.execute_motion_program("AAA.JBI")  
     np.savetxt('joint_recording.csv',np.hstack((timestamp.reshape(-1, 1),joint_recording)),delimiter=',')
 
 def zone_test():
@@ -924,8 +924,8 @@ if __name__ == "__main__":
     # send_exe()
     # multimove_positioner()
     # movec_test()
-    # read_joint2()
+    read_joint2()
     # zone_test()
     # DO_test()
     # Touch_test()
-    header_debug()
+    # header_debug()
