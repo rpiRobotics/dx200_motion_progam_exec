@@ -663,6 +663,7 @@ class MotionProgramExecClient(object):
         while(self._streaming):
             try:                
                 res, data = self.receive_from_robot(0.01)
+                # print(res)
                 if res:
                     with self._lock:
                         self.joint_angle=np.radians(np.divide(np.array(data[20:34]),self.reading_conversion))
@@ -732,6 +733,7 @@ class MotionProgramExecClient(object):
             start_time=time.time()
             while True:
                 time.sleep(0.001)
+                print(self.state_flag)
                 if self.state_flag & STATUS_RUNNING == 0 and time.time()-start_time>1.:
                     break       ###quit running loop if servo motor off
                     
@@ -842,6 +844,16 @@ def read_joint2():
     timestamp,joint_recording,job_line,_=client.execute_motion_program("AAA.JBI")  
     np.savetxt('joint_recording.csv',np.hstack((timestamp.reshape(-1, 1),joint_recording)),delimiter=',')
 
+
+def MA1440_test():
+    client=MotionProgramExecClient(ROBOT_CHOICE='RB2',pulse2deg=[1435.350459,1300.317471,1422.222174,969.9555508,980.2392898,454.754161])
+
+    client.MoveJ(np.zeros(6), 1,0)
+    client.MoveJ(5*np.ones(6), 1,0)
+    client.MoveJ(np.zeros(6), 1,0)
+    
+    timestamp,joint_recording,job_line,_=client.execute_motion_program("AAA.JBI")  
+
 def zone_test():
     client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
 
@@ -919,13 +931,15 @@ def header_debug_real():
     print(timestamp1[-1]-timestamp1[0])
     print(timestamp2[-1]-timestamp2[0])
 
+    
 if __name__ == "__main__":
     # main()
     # send_exe()
     # multimove_positioner()
     # movec_test()
-    read_joint2()
+    # read_joint2()
     # zone_test()
     # DO_test()
     # Touch_test()
     # header_debug()
+    MA1440_test()
