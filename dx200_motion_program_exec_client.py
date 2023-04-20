@@ -695,6 +695,7 @@ class MotionProgramExecClient(object):
                 raise
 
         if len(res[0]) == 0 and len(res[2])==0:
+            # print('here')
             return False, None
         try:
             (buf, addr)=s.recvfrom(65536)
@@ -733,7 +734,7 @@ class MotionProgramExecClient(object):
             start_time=time.time()
             while True:
                 time.sleep(0.001)
-                print(self.state_flag)
+                # print(self.state_flag)
                 if self.state_flag & STATUS_RUNNING == 0 and time.time()-start_time>1.:
                     break       ###quit running loop if servo motor off
                     
@@ -931,7 +932,7 @@ def header_debug_real():
     print(timestamp1[-1]-timestamp1[0])
     print(timestamp2[-1]-timestamp2[0])
 
-    
+
 if __name__ == "__main__":
     # main()
     # send_exe()
