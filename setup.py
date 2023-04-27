@@ -10,7 +10,7 @@ setup(
     version='0.0.0',
     description='dx200 motion control',
     url='',
-    py_modules=['dx200_motion_program_exec_client'],
+    py_modules=['dx200_motion_program_exec_client','dx200_motion_program_exec_client_new'],
     install_requires=[
         'requests',
         'numpy'
