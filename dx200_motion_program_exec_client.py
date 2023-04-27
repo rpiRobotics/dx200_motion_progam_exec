@@ -94,26 +94,6 @@ def UploadFileFTP(file_path_name, server_ip, remote_path, username, password):
     return True
 
 def UploadFTP(program, robot_ip, remote_path, ftp_user, ftp_pass, pause_sec=2):
-    """Upload a program or a list of programs to the robot through FTP provided the connection parameters"""
-    # Iterate through program list if it is a list of files
-    if isinstance(program, list):
-        if len(program) == 0:
-            print('POPUP: Nothing to transfer')
-            sys.stdout.flush()
-            time.sleep(pause_sec)
-            return
-
-        for prog in program:
-            UploadFTP(prog, robot_ip, remote_path, ftp_user, ftp_pass, 0)
-
-        print("POPUP: <font color=\"blue\">Done: %i files and folders successfully transferred</font>" % len(program))
-        sys.stdout.flush()
-        time.sleep(pause_sec)
-        print("POPUP: Done")
-        sys.stdout.flush()
-        return
-
-    import os
     if os.path.isfile(program):
         print('Sending program file %s...' % program)
         UploadFileFTP(program, robot_ip, remote_path, ftp_user, ftp_pass)
@@ -125,33 +105,12 @@ def UploadFTP(program, robot_ip, remote_path, ftp_user, ftp_pass, pause_sec=2):
     print("POPUP: Done")
     sys.stdout.flush()
 
-# Object class that handles the robot instructions/syntax
-class MotionProgramExecClient(object):
+class MotionProgram:
     """Robot post object defined for Motoman robots"""
     MAX_LINES_X_PROG = 2000      # maximum number of lines per program. It will then generate multiple "pages (files)". This can be overriden by RoboDK settings.    
-    
-    INCLUDE_SUB_PROGRAMS = True # Generate sub programs
-    
-    
-    # other variables
-    PROG_FILES = [] # List of Program files to be uploaded through FTP
-    
-    PROG_NAMES = [] # List of PROG NAMES
-    PROG_LIST = [] # List of PROG 
-    
-    PROG_NAME = 'unknown'  # Original name of the current program (example: ProgA)
-    PROG_NAME_CURRENT = 'unknown' # Auto generated name (different from PROG_NAME if we have more than 1 page per program. Example: ProgA2)
-    
-    nPages = 0           # Count the number of pages
-    PROG_NAMES_MAIN = [] # List of programs called by a main program due to splitting
-        
-    def __init__(self, pulse2deg,ROBOT_CHOICE, IP='192.168.1.31', PORT=80 ,ROBOT_CHOICE2=None, tool_num = 12, pulse2deg_2=None):
+                
+    def __init__(self, pulse2deg,ROBOT_CHOICE ,ROBOT_CHOICE2=None, tool_num = 12, pulse2deg_2=None):
         self.ACTIVE_TOOL = tool_num
-        self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
-        self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.s_MP.bind(('0.0.0.0',11000))
-        self._lock=threading.Lock()
-        self._recording=False
 
         #hardcoded p2d for all robots in series
         # self.reading_conversion=10000*np.ones(14)
@@ -162,73 +121,31 @@ class MotionProgramExecClient(object):
         self.ROBOT_CHOICE = ROBOT_CHOICE
         self.PULSES_X_DEG = pulse2deg
         self.PULSES_X_DEG_2 = pulse2deg_2
-        self.IP=IP
-        self.PORT=PORT
         self.ROBOT_CHOICE2=ROBOT_CHOICE2
-        self.buf_struct = struct.Struct("<34i")
-        self.recording=[]
-        self.state_flag=0
-
-
-        self.POSE_FRAME = np.eye(4)
         self.ProgStart()
-        
-                
-                
-    def ProgStart(self, progname=r"""AAA""", new_page = False):
+
+    def ProgStart(self):
         self.PROG=[]
         self.PROG_TARGETS=[]
         self.PROG_TARGETS2=[]
         # PROG specific variables:
         self.LINE_COUNT = 0      # Count the number of instructions (limited by MAX_LINES_X_PROG)
-        self.P_COUNT = 0         # Count the number of P targets in one file
         self.C_COUNT = 0         # Count the number of P targets in one file
         self.EC_COUNT = 0
-        self.nProgs = 0          # Count the number of programs and sub programs
-        self.LBL_ID_COUNT = 0    # Number of labels used
-        self.LAST_CONFDATA = [None, None, None, None]
-        progname_i = progname
-        if new_page:
-            #nPages = len(self.PROG_LIST)
-            if self.nPages == 0:
-                if len(self.PROG_NAMES_MAIN) > 0:
-                    print("Can't split %s: Two or more programs are split into smaller programs" % progname)
-                    print(self.PROG_NAMES_MAIN)
-                    raise Exception("Only one program at a time can be split into smaller programs")
-                self.PROG_NAMES_MAIN.append(self.PROG_NAME) # add the first program in the list to be genrated as a subprogram call
-                self.nPages = self.nPages + 1
-
-            self.nPages = self.nPages + 1
-            progname_i = "%s%i" % (self.PROG_NAME, self.nPages)          
-            self.PROG_NAMES_MAIN.append(progname_i)
-            
-        else:
-            if self.nProgs > 1 and not self.INCLUDE_SUB_PROGRAMS:
-                return
-            self.PROG_NAME = progname
-            self.nProgs = self.nProgs + 1
-            #self.PROG_NAMES = []
-            
-        self.PROG_NAME_CURRENT = progname_i
-        self.PROG_NAMES.append(progname_i)
+        self.tool_CONF_set=False
+        self.pulse_CONF_set=False
 
     def ProgEnd(self):
         self.ProgFinish(r"""AAA""")
-        self.ProgSave(".","AAA")
+        self.progsave(".","AAA")
         
-    def ProgFinish(self, progname, new_page = False):
-        if not new_page:
-            # Reset page count
-            self.nPages = 0
-            
-        #if self.nPROGS > 1:
-        #    # Motoman does not support defining multiple programs in the same file, so one program per file
-        #    return
+    def ProgFinish(self, progname):
+
         header = ''
         header += '/JOB' + '\n'
         header += '//NAME %s' % progname + '\n'
         header += '//POS' + '\n'
-        header += '///NPOS %i,0,%i,%i,0,0' % (self.C_COUNT, self.EC_COUNT, self.P_COUNT)
+        header += '///NPOS %i,0,%i,0,0,0' % (self.C_COUNT, self.EC_COUNT)
         
         # Targets are added at this point       
         
@@ -257,51 +174,23 @@ class MotionProgramExecClient(object):
         
         self.PROG = self.PROG_TARGETS + self.PROG_TARGETS2 + self.PROG        
         
-        # Save PROG in PROG_LIST
-        self.PROG_LIST.append(self.PROG)
-        self.PROG = []
-        self.PROG_TARGETS = []
-        self.PROG_TARGETS2 = []
-        self.LINE_COUNT = 0
-        self.P_COUNT = 0
-        self.C_COUNT = 0
-        self.EC_COUNT = 0
-        self.LAST_CONFDATA = [None, None, None, None]
-        self.LBL_ID_COUNT = 0
         
     def progsave(self, folder, progname):
         if not folder.endswith('/'):
             folder = folder + '/'
         progname = progname + '.JBI'
-        if not DirExists(folder):
-            filesave = getSaveFile(folder, progname, 'Save program as...')
-            if filesave is not None:
-                filesave = filesave.name
-            else:
-                return
-        else:
-            filesave = folder + progname
+        filesave = folder + progname
         fid = open(filesave, "w")
         #fid.write(self.PROG)
         for line in self.PROG:
             fid.write(line)
             fid.write('\n')
-        fid.close()
-        self.PROG_FILES.append(filesave)
-            
-    def ProgSave(self, folder, progname):
-        self.PROG = self.PROG_LIST.pop()
-        self.progsave(folder, progname)
-        
-    def ProgSendRobot(self, remote_path, ftp_user, ftp_pass):
-        """Send a program to the robot using the provided parameters. This method is executed right after ProgSave if we selected the option "Send Program to Robot".
-        The connection parameters must be provided in the robot connection menu of RoboDK"""
-        UploadFTP(self.PROG_FILES, self.IP, remote_path, ftp_user, ftp_pass)
-        
+        fid.close()        
+    
+    ##############################################MOTION COMMAND################################################################################    
     def MoveJ(self, joints, speed, zone=None, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a joint movement"""
-        self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         
         if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
@@ -334,7 +223,6 @@ class MotionProgramExecClient(object):
         ###target2: MOVC,j1,j2,j3,speed,zone
         ###joints: degrees
         """Add a linear movement"""        
-        self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
         target_id = self.add_target_joints(joints)
 
         if zone is not None:
@@ -361,7 +249,6 @@ class MotionProgramExecClient(object):
     def MoveC(self, joints1, joints2, joints3, speed, zone, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a circular movement"""
-        self.page_size_control() # Important to control the maximum lines per program and not save last target on new program
 
         if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
@@ -411,7 +298,7 @@ class MotionProgramExecClient(object):
             self.addline("MOVC C%05d %s%s" % (target_id2, "V=%.1f" % speed, zone_args))
             self.addline("MOVC C%05d %s%s" % (target_id3, "V=%.1f" % speed, zone_args+' FPT'))
 
-    def SetArc(self,on,cond_num=None):
+    def setArc(self,on,cond_num=None):
         if cond_num:
             if on:
                 self.addline('ARCON '+'ASF#('+str(cond_num)+')')
@@ -423,7 +310,7 @@ class MotionProgramExecClient(object):
             else:
                 self.addline('ARCOF')
 
-    def ChangeArc(self,cond_num):
+    def changeArc(self,cond_num):
         self.addline('ARCSET '+'ASF#('+str(cond_num)+')')
         
 
@@ -470,44 +357,26 @@ class MotionProgramExecClient(object):
             #WAIT IN#(12)=ON
             self.addline('WAIT %s=%s' % (io_var, io_value))
         else:
-            #self.LBL_ID_COUNT = self.LBL_ID_COUNT + 1
             self.addline('WAIT %s=%s T=%.2f' % (io_var, io_value, timeout_ms*0.001))
 
 # ------------------ private ----------------------
-    def page_size_control(self):
-        if self.LINE_COUNT >= self.MAX_LINES_X_PROG:
-            self.ProgFinish(self.PROG_NAME, True)
-            self.ProgStart(self.PROG_NAME, True)
-
-
     def addline(self, newline, movetype = ' '):
         """Add a program line"""
-        if self.nProgs > 1 and not self.INCLUDE_SUB_PROGRAMS:
-            return
         
-        self.page_size_control()        
         self.LINE_COUNT = self.LINE_COUNT + 1
         self.PROG.append(newline)
 
     def setPulses(self):
-        #self.LAST_CONFDATA = [none/pulses(0)/postype(1), base, tool, config]
-        if self.LAST_CONFDATA[0] is None:
+        if not self.tool_CONF_set:
             self.PROG_TARGETS.append("///TOOL %i" % self.ACTIVE_TOOL)
-            self.LAST_CONFDATA[2] = self.ACTIVE_TOOL
-       
-        if self.LAST_CONFDATA[0] != 1:
+            self.tool_CONF_set=True
+        if not self.pulse_CONF_set:
             self.PROG_TARGETS.append("///POSTYPE PULSE")
             self.PROG_TARGETS.append("///PULSE")
-            self.LAST_CONFDATA[0] = 1
-            
-        self.LAST_CONFDATA[0] = 1
-        self.LAST_CONFDATA[1] = None
-        self.LAST_CONFDATA[2] = None
-        self.LAST_CONFDATA[3] = None
-        
+            self.pulse_CONF_set=True
+
+
     def add_target_joints(self, joints, pulse2deg=None):    
-        if self.nProgs > 1 and not self.INCLUDE_SUB_PROGRAMS:
-            return
 
         self.setPulses()            
         cid = self.C_COUNT
@@ -524,8 +393,6 @@ class MotionProgramExecClient(object):
         return cid
 
     def add_target_joints2(self, joints,pulse2deg): 
-        if self.nProgs > 1 and not self.INCLUDE_SUB_PROGRAMS:
-            return
 
         self.setPulses()            
         ecid = self.EC_COUNT
@@ -538,7 +405,34 @@ class MotionProgramExecClient(object):
         self.PROG_TARGETS2.append('EC%05i=' % ecid + ','.join(str_pulses))         
         return ecid
     
+# Object class that handles the robot instructions/syntax
+class MotionProgramExecClient(object):
+    
+    def __init__(self, IP='192.168.1.31', PORT=80):
+        self.s_MP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #motoplus socket connection
+        self.s_MP.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.s_MP.bind(('0.0.0.0',11000))
+        self._lock=threading.Lock()
+        self._recording=False
+
+        #hardcoded p2d for all robots in series
+        # self.reading_conversion=10000*np.ones(14)
+        # self.reading_conversion[1::2]=-self.reading_conversion[1::2]
+
+        self.reading_conversion=np.array([1341.380023,1907.674052,1592.888923,1022.862207,980.2392898,454.754161,1435.350459,1300.317471,1422.222174,969.9555508,980.2392898,454.754161,1994.296925,1376.711214])
+
+        self.IP=IP
+        self.PORT=PORT
+
+        self.buf_struct = struct.Struct("<34i")
+        self.recording=[]
+        self.state_flag=0        
+                
+                
+    
+    
     ##################ADVANCED ETHERNET FUNCTION############################
+
     def __sendCMD(self,command,payload):
         """INTERNAL - Internal send Function.
 
@@ -695,7 +589,6 @@ class MotionProgramExecClient(object):
                 raise
 
         if len(res[0]) == 0 and len(res[2])==0:
-            # print('here')
             return False, None
         try:
             (buf, addr)=s.recvfrom(65536)
@@ -715,14 +608,11 @@ class MotionProgramExecClient(object):
 
 
     ##############################EXECUTION############################################
-    def execute_motion_program(self, filename="AAA.JBI"):
-        self.ProgEnd()
+    def execute_motion_program(self, motion_program: MotionProgram):
+        motion_program.ProgEnd()
         self.StartStreaming()
-        try:
-            # self.connectMH() #Connect to Controller
-            self.PROG_FILES=[]
-            self.PROG_FILES.append(filename)
-            self.ProgSendRobot('JOB',"ftp","")
+        try:            
+            UploadFTP('AAA.JBI', self.IP, 'JOB', "ftp", "")
             ###TODO: figure out return time
             self.servoMH() #Turn Servo on
 
@@ -757,39 +647,80 @@ class MotionProgramExecClient(object):
         finally:
             self.StopStreaming()
             ###clean INFORM code
-            self.ProgStart()
-        
+            motion_program.ProgStart()
+    
+    def execute_motion_program_file(self, filename):
+        self.StartStreaming()
+        try:            
+            UploadFTP(filename, self.IP, 'JOB', "ftp", "")
+            ###TODO: figure out return time
+            self.servoMH() #Turn Servo on
+
+            self.startJobMH(filename[:-4])
+            self._recording=True
+            ###block printing
+            # blockPrint()
+            last_reading=np.zeros(14)
+            start_time=time.time()
+            while True:
+                time.sleep(0.001)
+                # print(self.state_flag)
+                if self.state_flag & STATUS_RUNNING == 0 and time.time()-start_time>1.:
+                    break       ###quit running loop if servo motor off
+                    
+                # if len(self.joint_recording)>10:
+                #     if np.array_equal(self.joint_recording[-1][1:],self.joint_recording[-7][1:]):
+                #         with self._lock:
+                #             [d1,d2]=self.statusMH()
+                #             d1 = [int(i) for i in bin(int(d1))[2:]]
+                #             if not d1[4]:       #if robot not running
+                #                 break
 
 
+            ###enable printing
+            # enablePrint()
+            recording=np.array(copy.deepcopy(self.recording))
+            self._recording=False
+            self.servoMH(False) #Turn the Servos of
+
+            return recording[:,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
+        finally:
+            self.StopStreaming()
+
+            
+            
 
 def main():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient()
 
-    client.setWaitTime(1)
-    client.MoveJ([0,0,0,0,0,0],10,0)
-    # client.setWaitTime(1)
-    # client.MoveJ([0,-1.23097,-15.1604,0,13.9294,0],10,0)
-    # client.MoveJ([0,-27.1205,-36.7057,0,9.58517,0],10,0)
+    mp.setWaitTime(1)
+    mp.MoveJ([0,0,0,0,0,0],10,0)
+    mp.setWaitTime(1)
+    mp.MoveJ([0,-1.23097,-15.1604,0,13.9294,0],10,0)
+    mp.MoveJ([0,-27.1205,-36.7057,0,9.58517,0],10,0)
 
-    timestamp,joint_recording,job_line,job_step=client.execute_motion_program("AAA.JBI")
+    timestamp,joint_recording,job_line,job_step=client.execute_motion_program(mp)
     print('job_line ', job_line)
     print('job_step ',job_step)
 
+
+
 def movec_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient()
 
     q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
     q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
     q3=np.array([29.3548,5.8107,-20.41,27.3331,-58.956,-86.4])
-    client.MoveJ(q1,1,0)
-    client.MoveC(q1, q2, q3, 10,0)
+    mp.MoveJ(q1,1,0)
+    mp.MoveC(q1, q2, q3, 10,0)
 
-    
-
-    print(client.execute_motion_program("AAA.JBI"))
+    client.execute_motion_program(mp)
 
 def multimove_positioner():           ###multimove with robot+ positioner
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB2',ROBOT_CHOICE2='ST1',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1994.3054,1376.714])
+    mp=MotionProgram(ROBOT_CHOICE='RB2',ROBOT_CHOICE2='ST1',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1994.3054,1376.714])
+    client=MotionProgramExecClient()
 
     q1=np.array([43.5893,72.1362,45.2749,-84.0966,24.3644,94.2091])
     q2=np.array([34.6291,55.5756,15.4033,-28.8363,24.0298,3.6855])
@@ -800,15 +731,15 @@ def multimove_positioner():           ###multimove with robot+ positioner
     target2J_2=['MOVJ',[-15,140],1,0]
     target2J_3=['MOVJ',[-15,100],1,0]
 
-    client.MoveJ(q1, 1,0,target2=target2J_1)
-    client.MoveL(q2, 10,0,target2=target2J_2)
-    # client.MoveL(q3, 10,0,target2=target2J_3)
-
+    mp.MoveJ(q1, 1,0,target2=target2J_1)
+    mp.MoveL(q2, 10,0,target2=target2J_2)
+    mp.MoveL(q3, 10,0,target2=target2J_3)
     
-    print(client.execute_motion_program("AAA.JBI"))
+    client.execute_motion_program(mp)
 
 def multimove_robots():  ####multimove with 2 robots
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='RB2',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    mp=MotionProgram(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='RB2',pulse2deg=[1.435355447016790322e+03,1.300329111270902331e+03,1.422225409601069941e+03,9.699560942607320158e+02,9.802408285708806943e+02,4.547552630640436178e+02],pulse2deg_2=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient()
 
     q1=np.array([43.5893,72.1362,45.2749,-84.0966,24.3644,94.2091])
     q2=np.array([34.6291,55.5756,15.4033,-28.8363,24.0298,3.6855])
@@ -818,129 +749,16 @@ def multimove_robots():  ####multimove with 2 robots
     target2J_2=['MOVJ',q2,1,0]
     target2J_3=['MOVJ',q3,1,0]
 
-    client.MoveJ(q1, 1,0,target2=target2J_1)
-    client.MoveL(q2, 10,0,target2=target2J_2)
-    client.MoveL(q3, 10,0,target2=target2J_3)
+    mp.MoveJ(q1, 1,None,target2=target2J_1)
+    mp.MoveL(q2, 10,None,target2=target2J_2)
+    mp.MoveL(q3, 10,None,target2=target2J_3)
 
     
-    print(client.execute_motion_program("AAA.JBI"))
-
-def send_exe():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
-
-    client.execute_motion_program("AAA.JBI")
-
-def read_joint():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',ROBOT_CHOICE2='ST1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],pulse2deg_2=[1994.3054,1376.714])
-    client.connectMH()
-    client.getJointAnglesMH()
-
-def read_joint2():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-
-    client.MoveJ(np.zeros(6), 1,0)
-    client.MoveJ(5*np.ones(6), 1,0)
-    client.MoveJ(np.zeros(6), 1,0)
-    
-    timestamp,joint_recording,job_line,_=client.execute_motion_program("AAA.JBI")  
-    np.savetxt('joint_recording.csv',np.hstack((timestamp.reshape(-1, 1),joint_recording)),delimiter=',')
-
-
-def MA1440_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB2',pulse2deg=[1435.350459,1300.317471,1422.222174,969.9555508,980.2392898,454.754161])
-
-    client.MoveJ(np.zeros(6), 1,0)
-    client.MoveJ(5*np.ones(6), 1,0)
-    client.MoveJ(np.zeros(6), 1,0)
-    
-    timestamp,joint_recording,job_line,_=client.execute_motion_program("AAA.JBI")  
-
-def zone_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-
-    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
-    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
-    client.MoveJ(q1,1,0)
-    client.MoveL(q2, 10)
-
-    
-
-def DO_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    client.setDO(4095,1)
-    # client.setDOPulse(4095,1)
-
-    client.setWaitTime(1)
-    # client.setDOPulse(11,5)
-    client.setDO(4095,0)
-
-    client.execute_motion_program("AAA.JBI")  
-
-def Touch_test():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    q1=np.array([-32.3278,34.4634,11.3912,-14.2208,-50.0826,39.8111])
-    q2=np.array([-32.3264,36.432,9.0947,-15.1946,-46.0499,41.2464])
-    client.MoveJ(q1,1,0)
-    client.touchsense(q2, 10 ,20)
-    
-    client.execute_motion_program("AAA.JBI")
-
-def header_debug():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-
-    q1=np.array([-29.3578,31.3077,10.7948,7.6804,-45.9367,-18.5858])
-    q2=np.array([-3.7461,37.3931,19.2775,18.7904,-53.9888,-48.712])
-
-    client.MoveJ(q1,1,0)
-    client.ProgEnd()
-
-    client.ProgStart()
-    client.MoveL(q2, 10)
-    client.ProgEnd()
-
-    client.ProgStart()
-    client.MoveJ(q1,1,0)
-    client.ProgEnd()
-
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-
-    client.MoveL(q2, 10)
-    client.ProgEnd()
-
-def header_debug_real():
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-
-    v=400
-
-    q1=np.degrees([0.415960992, -0.007691068,    -0.077033396,    0.166405859, -1.152634465,    -0.45682964])
-    q2=np.degrees([-0.7640303823690084,0.5200611689900151,0.004431088515586268,-1.376309377453568,-1.89942038803517,0.5479765692688374])
-
-    client.MoveJ(q1,5)
-    client.execute_motion_program()
-
-    client.MoveL(q2, 200)
-    timestamp1, joint_recording1, _, _ = client.execute_motion_program()
-
-    client.MoveJ(q1,5)
-    client.execute_motion_program()
-
-    client=MotionProgramExecClient(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-
-    client.MoveL(q2, 200)
-    timestamp2, joint_recording2, _, _ = client.execute_motion_program()
-
-    print(timestamp1[-1]-timestamp1[0])
-    print(timestamp2[-1]-timestamp2[0])
+    client.execute_motion_program(mp)
 
 
 if __name__ == "__main__":
-    # main()
-    # send_exe()
+    main()
     # multimove_positioner()
     # movec_test()
-    # read_joint2()
-    # zone_test()
-    # DO_test()
-    # Touch_test()
-    # header_debug()
-    MA1440_test()
+    # multimove_robots()
