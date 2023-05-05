@@ -338,8 +338,6 @@ class MotionProgram:
             else:
                 io_value = 'OFF'
         
-        # at this point, io_var and io_value must be string values
-        #DOUT OT#(2) ON
         self.addline('DOUT %s %s' % (io_var, io_value))
         
     def waitDI(self, io_var, io_value, timeout_ms=-1):
@@ -756,6 +754,23 @@ def multimove_robots():  ####multimove with 2 robots
     
     client.execute_motion_program(mp)
 
+
+def DO_test():
+    mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient()
+    mp.setDO(4092,1)
+    mp.setDOPulse(11,2)
+    mp.setDO(4092,0)
+    client.execute_motion_program(mp)  
+
+def Touch_test():
+    mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient()
+    q1=np.array([-32.3278,34.4634,11.3912,-14.2208,-50.0826,39.8111])
+    q2=np.array([-32.3264,36.432,9.0947,-15.1946,-46.0499,41.2464])
+    mp.MoveJ(q1,1,0)
+    mp.touchsense(q2, 10 ,20)
+    client.execute_motion_program(mp) 
 
 if __name__ == "__main__":
     main()
