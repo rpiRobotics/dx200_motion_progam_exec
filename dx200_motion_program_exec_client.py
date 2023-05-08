@@ -329,6 +329,7 @@ class MotionProgram:
         self.addline('PULSE OT#(%s) T=%.2f' % (io_var, duration))
 
     def setDO(self, io_var, io_value):
+        ###OT 21 SOLENOID
         """Sets a variable (output) to a given value"""
         if type(io_var) != str:  # set default variable name if io_var is a number
             io_var = 'OT#(%s)' % str(io_var)        
@@ -773,7 +774,8 @@ def Touch_test():
     client.execute_motion_program(mp) 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    DO_test()
     # multimove_positioner()
     # movec_test()
     # multimove_robots()
