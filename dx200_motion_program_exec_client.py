@@ -328,8 +328,13 @@ class MotionProgram:
     def setDOPulse(self,io_var,duration):        
         self.addline('PULSE OT#(%s) T=%.2f' % (io_var, duration))
 
-    def setDO(self, io_var, io_value):
-        ###OT 21 SOLENOID
+    def setDO(self, io_var, io_value):  ###Universal Output
+        ###OT 11:   WireCut
+        ###OT 21:   SOLENOID (spray cooler)
+        ###OT 4092: Gas Purge
+        ###OT 4095: Wire Inch
+        ###OT 4096: Wire Retract
+        
         """Sets a variable (output) to a given value"""
         if type(io_var) != str:  # set default variable name if io_var is a number
             io_var = 'OT#(%s)' % str(io_var)        
