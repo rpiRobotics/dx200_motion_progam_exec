@@ -507,7 +507,7 @@ class MotionProgramExecClient(object):
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
         print(data2_str)
         data2_arr = [int(data2_str[0])/self.PULSES_X_DEG[0],int(data2_str[1])/self.PULSES_X_DEG[1],int(data2_str[2])/self.PULSES_X_DEG[2],int(data2_str[3])/self.PULSES_X_DEG[3],int(data2_str[4])/self.PULSES_X_DEG[4],int(data2_str[5])/self.PULSES_X_DEG[5]]
-        return data2_arr
+        return np.radians(data2_arr)
 
     def servoMH(self, state = True): #Enable/Disable Servos
         """Turn on/off the Servo motors
