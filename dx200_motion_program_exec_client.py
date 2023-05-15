@@ -496,7 +496,7 @@ class MotionProgramExecClient(object):
         """
         self.s.close()
 
-    def getJointAnglesMH(self): #Read Encoder pulses and convert them to Joint Angles
+    def getJointAnglesMH(self,PULSES_X_DEG): #Read Encoder pulses and convert them to Joint Angles
         """Read the Joint Angles
 
         Returns:
@@ -506,7 +506,7 @@ class MotionProgramExecClient(object):
 
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
         print(data2_str)
-        data2_arr = [int(data2_str[0])/self.PULSES_X_DEG[0],int(data2_str[1])/self.PULSES_X_DEG[1],int(data2_str[2])/self.PULSES_X_DEG[2],int(data2_str[3])/self.PULSES_X_DEG[3],int(data2_str[4])/self.PULSES_X_DEG[4],int(data2_str[5])/self.PULSES_X_DEG[5]]
+        data2_arr = [int(data2_str[0])/PULSES_X_DEG[0],int(data2_str[1])/PULSES_X_DEG[1],int(data2_str[2])/PULSES_X_DEG[2],int(data2_str[3])/PULSES_X_DEG[3],int(data2_str[4])/PULSES_X_DEG[4],int(data2_str[5])/PULSES_X_DEG[5]]
         return np.radians(data2_arr)
 
     def servoMH(self, state = True): #Enable/Disable Servos
