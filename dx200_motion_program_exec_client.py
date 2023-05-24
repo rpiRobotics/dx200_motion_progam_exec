@@ -430,6 +430,7 @@ class MotionProgramExecClient(object):
 
         self.buf_struct = struct.Struct("<34i")
         self.recording=[]
+        self._streaming=False
         self.state_flag=0        
                 
                 
@@ -603,6 +604,8 @@ class MotionProgramExecClient(object):
         return True, data
 
     def StartStreaming(self):
+        if self._streaming:     ###if already streaming
+            return
         self._streaming=True
         t=threading.Thread(target=self.threadfunc)
         t.daemon=True
@@ -612,6 +615,14 @@ class MotionProgramExecClient(object):
 
 
     ##############################EXECUTION############################################
+    def execute_motion_program_nonblocking(self, motion_program: MotionProgram):
+        motion_program.ProgEnd()
+        UploadFTP('AAA.JBI', self.IP, 'JOB', "ftp", "")
+        ###TODO: figure out return time
+        self.servoMH() #Turn Servo on
+        self.startJobMH('AAA')
+        motion_program.ProgStart()
+
     def execute_motion_program(self, motion_program: MotionProgram):
         motion_program.ProgEnd()
         self.StartStreaming()
