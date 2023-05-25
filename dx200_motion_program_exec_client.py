@@ -505,7 +505,7 @@ class MotionProgramExecClient(object):
         d1, d2 = self.__sendCMD("RPOSJ","")
 
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
-        print(data2_str)
+
         data2_arr = [int(data2_str[0])/PULSES_X_DEG[0],int(data2_str[1])/PULSES_X_DEG[1],int(data2_str[2])/PULSES_X_DEG[2],int(data2_str[3])/PULSES_X_DEG[3],int(data2_str[4])/PULSES_X_DEG[4],int(data2_str[5])/PULSES_X_DEG[5]]
         return np.radians(data2_arr)
 
