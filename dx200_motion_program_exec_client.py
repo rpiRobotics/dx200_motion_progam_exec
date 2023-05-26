@@ -191,6 +191,7 @@ class MotionProgram:
     def MoveJ(self, joints, speed, zone=None, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a joint movement"""
+        speed=max(speed,0.1)                ###speed=0 will raise error in INFORM
         
         if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
@@ -224,24 +225,26 @@ class MotionProgram:
         ###joints: degrees
         """Add a linear movement"""        
         target_id = self.add_target_joints(joints)
+        speed=max(speed,0.1)                ###speed=0 will raise error in INFORM
 
         if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
         else:
             zone_args=''
         if target2:
+            speed2=max(target2[2],0.1)      ###speed=0 will raise error in INFORM
             if 'RB' in self.ROBOT_CHOICE2:   ###if second robot is a robot
                 target_id_2 = self.add_target_joints(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2) + " VJ=%.1f" % target2[2])                        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2) + " VJ=%.1f" % speed2)                        
                 else:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2) + " V=%.1f" % target2[2])        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2) + " V=%.1f" % speed2)        
             else:                           ###if second robot is a positioner
                 target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " VJ=%.1f" % target2[2])                        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " VJ=%.1f" % speed2)                        
                 else:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " V=%.1f" % target2[2])        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " V=%.1f" % speed2)        
 
         else:
             self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args))        
@@ -249,7 +252,8 @@ class MotionProgram:
     def MoveC(self, joints1, joints2, joints3, speed, zone, target2=None):
         ###target2: MOVC,j1,j2,j3,speed,zone
         """Add a circular movement"""
-
+        
+        speed=max(speed,0.1)                ###speed=0 will raise error in INFORM
         if zone is not None:
             zone_args=' PL=%i' % round(min(zone, 8))
         else:
