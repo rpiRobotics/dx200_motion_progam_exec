@@ -233,15 +233,15 @@ class MotionProgram:
             if 'RB' in self.ROBOT_CHOICE2:   ###if second robot is a robot
                 target_id_2 = self.add_target_joints(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2))                        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2) + " VJ=%.1f" % target2[2])                        
                 else:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2))        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2) + " V=%.1f" % target2[2])        
             else:                           ###if second robot is a positioner
                 target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))                        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " VJ=%.1f" % target2[2])                        
                 else:
-                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))        
+                    self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " V=%.1f" % target2[2])        
 
         else:
             self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args))        
@@ -508,6 +508,19 @@ class MotionProgramExecClient(object):
         data2_str = d2.decode("utf-8").replace("\r","").split(",")
 
         data2_arr = [int(data2_str[0])/PULSES_X_DEG[0],int(data2_str[1])/PULSES_X_DEG[1],int(data2_str[2])/PULSES_X_DEG[2],int(data2_str[3])/PULSES_X_DEG[3],int(data2_str[4])/PULSES_X_DEG[4],int(data2_str[5])/PULSES_X_DEG[5]]
+        return np.radians(data2_arr)
+
+    def getJointAnglesDB(self,PULSES_X_DEG): #Read Encoder pulses and convert them to Joint Angles
+        """Read the Joint Angles
+
+        Returns:
+            list: list of the six joint angles
+        """
+        d1, d2 = self.__sendCMD("RPOSJ","")
+
+        data2_str = d2.decode("utf-8").replace("\r","").split(",")
+
+        data2_arr = [int(data2_str[6])/PULSES_X_DEG[0],int(data2_str[7])/PULSES_X_DEG[1]]
         return np.radians(data2_arr)
 
     def servoMH(self, state = True): #Enable/Disable Servos
@@ -789,9 +802,17 @@ def Touch_test():
     mp.touchsense(q2, 10 ,20)
     client.execute_motion_program(mp) 
 
+def read_joint():
+    client=MotionProgramExecClient()
+    print(client.getJointAnglesDB([1994.296925,1376.711214]))
+
+
 if __name__ == "__main__":
     # main()
-    DO_test()
+    # DO_test()
     # multimove_positioner()
     # movec_test()
     # multimove_robots()
+    read_joint()
+
+    
