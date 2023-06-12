@@ -206,15 +206,15 @@ class MotionProgram:
                 if 'RB' in self.ROBOT_CHOICE2:   ###if second robot is a robot
                     target_id_2 = self.add_target_joints(target2[1],self.PULSES_X_DEG_2)
                     if 'J' in target2[0]:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2)) 
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2)+ " VJ=%.1f" % target2[2])   
                     else:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2)) 
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" C%05d" % (target_id_2)+ " V=%.1f" % target2[2]) 
                 else:                           ###if second robot is a positioner
                     target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
                     if 'J' in target2[0]:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2)) 
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2)+ " VJ=%.1f" % target2[2]) 
                     else:
-                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))  
+                        self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2)+ " V=%.1f" % target2[2])  
 
             else:
                 self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args))                  
