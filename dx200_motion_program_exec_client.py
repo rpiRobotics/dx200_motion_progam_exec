@@ -111,7 +111,7 @@ class MotionProgram:
                 
     def __init__(self, pulse2deg,ROBOT_CHOICE ,ROBOT_CHOICE2=None, tool_num = 12, pulse2deg_2=None):
         self.ACTIVE_TOOL = tool_num
-
+        self._primitives={'movel':self.MoveL,'movej':self.MoveJ}
         #hardcoded p2d for all robots in series
         # self.reading_conversion=10000*np.ones(14)
         # self.reading_conversion[1::2]=-self.reading_conversion[1::2]
@@ -189,7 +189,7 @@ class MotionProgram:
     
     ##############################################MOTION COMMAND################################################################################    
     def MoveJ(self, joints, speed, zone=None, target2=None):
-        ###target2: MOVC,j1,j2,j3,speed,zone
+        ###target2: [primitive,q,v]
         """Add a joint movement"""
         speed=max(speed,0.1)                ###speed=0 will raise error in INFORM
         
@@ -221,7 +221,7 @@ class MotionProgram:
                 self.addline("MOVJ C%05d %s%s" % (target_id, "VJ=%.1f" % speed, zone_args))                  
             
     def MoveL(self, joints, speed, zone=None, target2=None):
-        ###target2: MOVC,j1,j2,j3,speed,zone
+        ###target2: [primitive,q,v]
         ###joints: degrees
         """Add a linear movement"""        
         target_id = self.add_target_joints(joints)
@@ -413,6 +413,13 @@ class MotionProgram:
         self.PROG_TARGETS2.append('EC%05i=' % ecid + ','.join(str_pulses))         
         return ecid
     
+    def primitive_call(self, primitive,q,v):
+        return self._primitives[primitive](q,v)
+
+    def primitive_call_dual(self, primitive,q,v,target2):
+        return self._primitives[primitive](q,v,target2=target2)
+
+
 # Object class that handles the robot instructions/syntax
 class MotionProgramExecClient(object):
     
