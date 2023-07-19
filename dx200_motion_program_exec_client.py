@@ -466,6 +466,9 @@ class MotionProgram:
     def primitive_call_dual(self, primitive,q,v,target2):
         return self._primitives[primitive](q,v,target2=target2)
 
+    def primitive_call_tri(self, primitive,q,v,target2,target3):
+        return self._primitives[primitive](q,v,target2=target2,target3=target3)
+
 
 # Object class that handles the robot instructions/syntax
 class MotionProgramExecClient(object):
