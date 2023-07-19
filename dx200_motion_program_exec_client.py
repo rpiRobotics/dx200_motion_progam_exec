@@ -729,7 +729,7 @@ class MotionProgramExecClient(object):
             self._recording=False
             self.servoMH(False) #Turn the Servos of
 
-            return recording[:,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
+            return recording[:,0]-recording[0,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
         finally:
             self.StopStreaming()
             ###clean INFORM code
@@ -769,7 +769,7 @@ class MotionProgramExecClient(object):
             self._recording=False
             self.servoMH(False) #Turn the Servos of
 
-            return recording[:,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
+            return recording[:,0]-recording[0,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
         finally:
             self.StopStreaming()
 
