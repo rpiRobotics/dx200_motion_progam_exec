@@ -439,7 +439,7 @@ class MotionProgram:
                 
         str_pulses=[]
 
-        if not pulse2deg:
+        if pulse2deg is None:
             pulse2deg = self.PULSES_X_DEG
         for i in range(len(joints)):
             str_pulses.append('%i' % round(joints[i] * pulse2deg[i]))
