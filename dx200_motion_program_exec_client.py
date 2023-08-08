@@ -285,12 +285,12 @@ class MotionProgram:
                 target_id_2 = self.add_target_joints2(target2[1],self.PULSES_X_DEG_2)
                 if 'J' in target2[0]:
                     if target2[2]: #speed args given
-                        self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " VJ=%.1f" % speed2)       
+                        self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " VJ=%.1f" % target2[2])       
                     else:
                         self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))                 
                 else:
                     if target2[2]: #speed args given
-                        self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " V=%.1f" % speed2)        
+                        self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2) + " V=%.1f" % target2[2])        
                     else:
                         self.addline("MOVL C%05d %s%s" % (target_id, "V=%.1f" % speed, zone_args)+ ' +' + target2[0]+" EC%05d" % (target_id_2))
         else:
