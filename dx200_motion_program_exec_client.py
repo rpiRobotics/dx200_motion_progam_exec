@@ -660,13 +660,13 @@ class MotionProgramExecClient(object):
     def threadfunc(self):
         while(self._streaming):
             try:                
-                res, fb_data = fb.try_receive_state_sync(self.controller_info, 0.001)
+                res, fb_data = self.fb.try_receive_state_sync(self.controller_info, 0.001)
                 if res:
                     with self._lock:
                         self.joint_angle=np.hstack((fb_data.group_state[0].feedback_position,fb_data.group_state[1].feedback_position,fb_data.group_state[2].feedback_position))
                         self.state_flag=fb_data.controller_flags
                         # print(self.joint_angle)
-                        timestamp=data[0]+data[1]*1e-9
+                        timestamp=fb_data.time
                         if self._recording:
                             self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[fb_data.job_state[0][1],fb_data.job_state[0][2]]))
                         else:
@@ -892,6 +892,14 @@ def read_joint():
     client=MotionProgramExecClient()
     print(client.getJointAnglesDB([1994.296925,1376.711214]))
 
+def read_joint2():
+    mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
+    client=MotionProgramExecClient()
+    q1=np.zeros(6)
+    mp.MoveJ(q1,1,0)
+    ts,js,job_line,job_step=client.execute_motion_program(mp) 
+    print(ts,js,job_line,job_step)
+
 def move_3robots():
     mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],
                      ROBOT_CHOICE2='ST1',pulse2deg_2=[1994.296925,1376.711214],
@@ -922,7 +930,7 @@ if __name__ == "__main__":
     # multimove_positioner()
     # movec_test()
     # multimove_robots()
-    # read_joint()
-    move_3robots()
+    read_joint2()
+    # move_3robots()
 
     
