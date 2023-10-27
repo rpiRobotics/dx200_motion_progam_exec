@@ -1,9 +1,6 @@
-from motoman_robotraconteur_driver.motoplus_rr_driver_feedback_client \
-    import MotoPlusRRDriverFeedbackSyncClient
 import sys, copy, socket, os, time, struct, traceback, threading, select
 import numpy as np
 from contextlib import suppress
-import pickle,base64
 
 #######################ROBOT STATE FLAG#################################
 STATUS_STEP=0x01
@@ -497,11 +494,8 @@ class MotionProgramExecClient(object):
         self._streaming=False
         self.state_flag=0        
                 
-        ##################RR driver part for new reading############################
-        s='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'
-        self.controller_info=pickle.loads(base64.b64decode(s))
-        self.fb = MotoPlusRRDriverFeedbackSyncClient()
-        self.fb.start(IP)
+                
+    
     
     ##################ADVANCED ETHERNET FUNCTION############################
 
@@ -638,37 +632,19 @@ class MotionProgramExecClient(object):
         d1,d2 = self.__sendCMD("START",f"{job}\r")
         return d1, d2
 
-    # def threadfunc(self):
-    #     while(self._streaming):
-    #         try:                
-    #             res, data = self.receive_from_robot(0.01)
-    #             # print(res)
-    #             if res:
-    #                 with self._lock:
-    #                     self.joint_angle=np.radians(np.divide(np.array(data[20:34]),self.reading_conversion))
-    #                     self.state_flag=data[16]
-    #                     # print(self.joint_angle)
-    #                     timestamp=data[0]+data[1]*1e-9
-    #                     if self._recording:
-    #                         self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[data[18],data[19]]))
-    #                     else:
-    #                         self.recording=[]
-    #         except:
-    #             traceback.print_exc()
-
-
     def threadfunc(self):
         while(self._streaming):
             try:                
-                res, fb_data = self.fb.try_receive_state_sync(self.controller_info, 0.001)
+                res, data = self.receive_from_robot(0.01)
+                # print(res)
                 if res:
                     with self._lock:
-                        self.joint_angle=np.hstack((fb_data.group_state[0].feedback_position,fb_data.group_state[1].feedback_position,fb_data.group_state[2].feedback_position))
-                        self.state_flag=fb_data.controller_flags
+                        self.joint_angle=np.radians(np.divide(np.array(data[20:34]),self.reading_conversion))
+                        self.state_flag=data[16]
                         # print(self.joint_angle)
-                        timestamp=fb_data.time
+                        timestamp=data[0]+data[1]*1e-9
                         if self._recording:
-                            self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[fb_data.job_state[0][1],fb_data.job_state[0][2]]))
+                            self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[data[18],data[19]]))
                         else:
                             self.recording=[]
             except:
@@ -700,7 +676,6 @@ class MotionProgramExecClient(object):
 
         data = self.buf_struct.unpack(buf)
         return True, data
-
 
     def StartStreaming(self):
         if self._streaming:     ###if already streaming
@@ -892,14 +867,6 @@ def read_joint():
     client=MotionProgramExecClient()
     print(client.getJointAnglesDB([1994.296925,1376.711214]))
 
-def read_joint2():
-    mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02])
-    client=MotionProgramExecClient()
-    q1=np.zeros(6)
-    mp.MoveJ(q1,1,0)
-    ts,js,job_line,job_step=client.execute_motion_program(mp) 
-    print(ts,js,job_line,job_step)
-
 def move_3robots():
     mp=MotionProgram(ROBOT_CHOICE='RB1',pulse2deg=[1.341416193724337745e+03,1.907685083229250267e+03,1.592916090846681982e+03,1.022871664227330484e+03,9.802549195016306385e+02,4.547554799861444508e+02],
                      ROBOT_CHOICE2='ST1',pulse2deg_2=[1994.296925,1376.711214],
@@ -930,7 +897,7 @@ if __name__ == "__main__":
     # multimove_positioner()
     # movec_test()
     # multimove_robots()
-    read_joint2()
-    # move_3robots()
+    # read_joint()
+    move_3robots()
 
     
