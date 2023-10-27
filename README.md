@@ -27,6 +27,7 @@ Toggle DISPLAY to Pulse/Absolute Degrees
 * I/F Panel: Monitor welding parameters (current/voltage, etc.)
 * Register: M368, M362 and M363 for welding parameters
 * Units: {Main Menu} -> {SETUP  } -> {OPERATE COND.}
+* Positioner J2 limit release: {Main Menu} -> {ROBOT} -> {SOFTLIMIT SETTING}, D500B J2 can set to +/-1e9-1 pulses
 
 ## MotoPlus Setting
 Motoplus program will run at background after boot up, and it's a `.out` file compiled in VS. Boot into Maintenance Mode and load .out file to USB drive. Motoplus could be connected with VGA display, see manual.
