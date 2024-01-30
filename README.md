@@ -34,14 +34,19 @@ Motoplus program will run at background after boot up, and it's a `.out` file co
 * MotoPlus APL.: LOAD(USER APPLICATION)
 
 ## Welder Setting
-Set IP and Gateway of Fronius Welder to communicate with DX200
-* Fronius IP: Deselect DHCP, IP Address: `192.168.1.55`, Standard Gateway: `192.168.1.31`
-* DX200 (Management): Weldcom Options -> ARC DIGITAL I/F FUNC. -> Power Source IP Address: `192.168.1.51`, HTTP POWER SOURCE IP ADDRESS: `192.168.1.55`
-* External Control: Defaults -> Interface -> external (to make DX200 have control over jobs)
-* DX200 (Parameters): AIP107=1 (Fronius control, 0 for robot control, leave it at 0)
-
+Set IP and Gateway of Fronius Welder to communicate with DX200.
+* Fronius IP: Deselect DHCP, IP Address: `192.168.1.55`, Standard Gateway: `192.168.1.31`.
+* DX200 (Management): Weldcom Options -> ARC DIGITAL I/F FUNC. -> Power Source IP Address: `192.168.1.51`, HTTP POWER SOURCE IP ADDRESS: `192.168.1.55`.
+* External Control: Defaults -> Interface -> external (to make DX200 have control over jobs), see below to set up Motoman to switch between jobs.
+* DX200 (Parameters): AIP107=1 (Fronius control, 0 for robot control, leave it at 0).
 
 Welder Interface could be accessed through browser at its IP.
+
+## Job Linkage
+To allow Motoman to switch between Fronius Jobs, it is necessary to set up {ARC START COND.} under {ARC WELDING}. Toggle `Job mode (Fronius)` in {OTHER} tab, and change both red circles to the job number in Fronius.
+
+<img src="images/cond_num.png" alt="Alt Text" width="300" height="auto">
+
 
 
 ## Usage
