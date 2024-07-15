@@ -638,25 +638,6 @@ class MotionProgramExecClient(object):
         d1,d2 = self.__sendCMD("START",f"{job}\r")
         return d1, d2
 
-    # def threadfunc(self):
-    #     while(self._streaming):
-    #         try:                
-    #             res, data = self.receive_from_robot(0.01)
-    #             # print(res)
-    #             if res:
-    #                 with self._lock:
-    #                     self.joint_angle=np.radians(np.divide(np.array(data[20:34]),self.reading_conversion))
-    #                     self.state_flag=data[16]
-    #                     # print(self.joint_angle)
-    #                     timestamp=data[0]+data[1]*1e-9
-    #                     if self._recording:
-    #                         self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[data[18],data[19]]))
-    #                     else:
-    #                         self.recording=[]
-    #         except:
-    #             traceback.print_exc()
-
-
     def threadfunc(self):
         while(self._streaming):
             try:                
@@ -665,10 +646,10 @@ class MotionProgramExecClient(object):
                     with self._lock:
                         self.joint_angle=np.hstack((fb_data.group_state[0].feedback_position,fb_data.group_state[1].feedback_position,fb_data.group_state[2].feedback_position))
                         self.state_flag=fb_data.controller_flags
-                        # print(self.joint_angle)
-                        timestamp=fb_data.time
+
                         if self._recording:
-                            self.recording.append(np.array([timestamp]+self.joint_angle.tolist()+[fb_data.job_state[0][1],fb_data.job_state[0][2]]))
+                            #[global_ts,robot_ts,joint_angles,job_state,job_state2]
+                            self.recording.append(np.array([time.perf_counter(),fb_data.time]+self.joint_angle.tolist()+[fb_data.job_state[0][1],fb_data.job_state[0][2]]))
                         else:
                             self.recording=[]
             except:
@@ -732,32 +713,20 @@ class MotionProgramExecClient(object):
 
             self.startJobMH('AAA')
             self._recording=True
-            ###block printing
-            # blockPrint()
+
             last_reading=np.zeros(14)
-            start_time=time.time()
+            start_time=time.perf_counter()
             while True:
                 time.sleep(0.001)
-                # print(self.state_flag)
-                if self.state_flag & STATUS_RUNNING == 0 and time.time()-start_time>1.:
+                if self.state_flag & STATUS_RUNNING == 0 and time.perf_counter()-start_time>1.:
                     break       ###quit running loop if servo motor off
-                    
-                # if len(self.joint_recording)>10:
-                #     if np.array_equal(self.joint_recording[-1][1:],self.joint_recording[-7][1:]):
-                #         with self._lock:
-                #             [d1,d2]=self.statusMH()
-                #             d1 = [int(i) for i in bin(int(d1))[2:]]
-                #             if not d1[4]:       #if robot not running
-                #                 break
 
 
-            ###enable printing
-            # enablePrint()
             recording=np.array(copy.deepcopy(self.recording))
             self._recording=False
             self.servoMH(False) #Turn the Servos of
 
-            return recording[:,0]-recording[0,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
+            return recording[:,0], recording[:,1] - recording[0,1], recording[:,2:-2], recording[:,-2], recording[:,-1]
         finally:
             self.StopStreaming()
             ###clean INFORM code
@@ -775,11 +744,11 @@ class MotionProgramExecClient(object):
             ###block printing
             # blockPrint()
             last_reading=np.zeros(14)
-            start_time=time.time()
+            start_time=time.perf_counter()
             while True:
                 time.sleep(0.001)
                 # print(self.state_flag)
-                if self.state_flag & STATUS_RUNNING == 0 and time.time()-start_time>1.:
+                if self.state_flag & STATUS_RUNNING == 0 and time.perf_counter()-start_time>1.:
                     break       ###quit running loop if servo motor off
                     
                 # if len(self.joint_recording)>10:
@@ -795,9 +764,10 @@ class MotionProgramExecClient(object):
             # enablePrint()
             recording=np.array(copy.deepcopy(self.recording))
             self._recording=False
-            self.servoMH(False) #Turn the Servos of
+            self.servoMH(False) #Turn the Servos off
 
-            return recording[:,0]-recording[0,0], recording[:,1:-2], recording[:,-2], recording[:,-1]
+            return recording[:,0], recording[:,1] - recording[0,1], recording[:,2:-2], recording[:,-2], recording[:,-1]
+
         finally:
             self.StopStreaming()
 
