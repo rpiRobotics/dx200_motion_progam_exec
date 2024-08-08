@@ -30,7 +30,7 @@ fb_timeout = 0.001
 while True:
     res, fb_data = fb.try_receive_state_sync(controller_info, fb_timeout)
     if res:
-        print(fb_data)
+        print(fb_data.group_state[0].feedback_position)
     time.sleep(0.004)
 
 # ControllerState(version=256, time=1694022904.916, seqno=6234591, controller_flags=66, group_state=[GroupState(axes_count=6, group_flags=6, command_position=array([-0.42922152,  0.40734967,  0.05257171,  0.210082  , -0.7508247 ,
