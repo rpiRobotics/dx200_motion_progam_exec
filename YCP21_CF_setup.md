@@ -22,3 +22,4 @@ CF card serial ID could be looked up under {SYSTEM} -> {VERSION} -> {UTILITY} ->
 Once in the **One Time Management Mode**, make sure the `CMOS.bin` is included in the teachpendant USB. Load the backup by {EX. MEMORY} -> {LOAD} ->{CMOS}. Loading process takes 2~5 minutes, and perform a FSU Reset under {FILE} -> {INITIALIZE} -> {Functional Safety Board FLASH Reset} after the flashing finished.
 
 ## Compatability
+CF card with 256MB size from other brands also work, directly from *.img* clone of the vendor's CF card. However it is not confirmed if other CF cards' serial ID would be able to generate One-Time passcode from Yaskawa, when setting up from scratch.
